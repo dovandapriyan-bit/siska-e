@@ -55,65 +55,69 @@
 </div>
 
 
-  <!-- AUTH / REGISTER -->
+    <!-- AUTH -->
   <div id="authCard" class="card p-3">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <h5>Pendaftaran Warga</h5>
-        <input id="reg_nama" class="form-control mb-2" placeholder="Nama lengkap">
-        <input id="reg_hp" class="form-control mb-2" placeholder="Nomor HP (0812...)" oninput="formatPhoneTyping(this)">
-        <input id="reg_password" type="password" class="form-control mb-2" placeholder="Password ">
-        <label class="form-label small">Pilih Status / Subrole</label>
-        <select id="reg_status" class="form-control mb-2">
-          <optgroup label="A. Kepala">
-            <option value="kepala_desa">Kepala Desa</option>
-            <option value="kepala_dusun">Kepala Dusun</option>
-            <option value="ketua_rt_rw">Ketua RT</option>
-            <option value="ketua_rt_rw">Ketua RW</option>
-            <option value="kepala_keluarga">Kepala Keluarga</option>
-          </optgroup>
-          <optgroup label="B. Istri">
-            <option value="istri">Istri</option>            
-          </optgroup>
-          <optgroup label="C. Anak">
-            <option value="anak">Anak</option>
-          </optgroup>
-          
-        </select>
 
-        <!-- Region dropdowns (EMSIFA) -->
-        <label class="form-label small">Provinsi / Kabupaten / Kecamatan / Desa / Dusun</label>
-        <select id="reg_prov" class="form-control mb-1"><option value="">Pilih Provinsi</option></select>
-        <select id="reg_kab" class="form-control mb-1"><option value="">Pilih Kabupaten/Kota</option></select>
-        <select id="reg_kec" class="form-control mb-1"><option value="">Pilih Kecamatan</option></select>
-        <select id="reg_des" class="form-control mb-1"><option value="">Pilih Desa/Kelurahan</option></select>
-
-        <div class="row g-2 mb-2">
-          <div class="col"><input id="reg_blok" class="form-control" placeholder="Blok (opsional)"></div>
-          <div class="col"><input id="reg_no" class="form-control" placeholder="No Rumah (opsional)"></div>
-        </div>
-        <div class="row g-2 mb-2">
-          <div class="col"><input id="reg_rt" class="form-control" placeholder="RT (mis. 001)" maxlength="3" onblur="padRT(this)"></div>
-          <div class="col"><input id="reg_rw" class="form-control" placeholder="RW (mis. 001)" maxlength="3" onblur="padRW(this)"></div>
-        </div>
-
-        <textarea id="reg_alamat" class="form-control mb-2" placeholder="Alamat lengkap"></textarea>
-
-        <div class="d-grid gap-2">
-          <button id="btnRegister" class="btn btn-success" onclick="onRegister()">Daftar</button>
-        </div>
+    <!-- FORM LOGIN -->
+    <div id="loginCard">
+      <h5>Login</h5>
+      <input id="login_hp" class="form-control mb-2" placeholder="Nomor HP (contoh: 0812...)" oninput="formatPhoneTyping(this)">
+      <input id="login_pass" type="password" class="form-control mb-2" placeholder="Password">
+      <div class="d-grid gap-2 mb-2">
+        <button class="btn btn-primary" onclick="onLogin()">Login</button>
       </div>
-
-      <div class="col-md-6">
-        <h5>Login</h5>
-        <input id="login_hp" class="form-control mb-2" placeholder="Nomor HP (contoh: 0812...)" oninput="formatPhoneTyping(this)">
-        <input id="login_pass" type="password" class="form-control mb-2" placeholder="Password">
-        <div class="d-grid gap-2 mb-2">
-          <button class="btn btn-primary" onclick="onLogin()">Login</button>
-        </div>
-      </div>
+      <p class="small">Belum punya akun? <a href="#" id="showRegister">Daftar di sini</a></p>
     </div>
+
+    <!-- FORM DAFTAR (disembunyikan awal) -->
+    <div id="registerCard" style="display:none;">
+      <h5>Pendaftaran Warga</h5>
+      <input id="reg_nama" class="form-control mb-2" placeholder="Nama lengkap">
+      <input id="reg_hp" class="form-control mb-2" placeholder="Nomor HP (0812...)" oninput="formatPhoneTyping(this)">
+      <input id="reg_password" type="password" class="form-control mb-2" placeholder="Password ">
+      <label class="form-label small">Pilih Status / Subrole</label>
+      <select id="reg_status" class="form-control mb-2">
+        <optgroup label="A. Kepala">
+          <option value="kepala_desa">Kepala Desa</option>
+          <option value="kepala_dusun">Kepala Dusun</option>
+          <option value="ketua_rt_rw">Ketua RT</option>
+          <option value="ketua_rt_rw">Ketua RW</option>
+          <option value="kepala_keluarga">Kepala Keluarga</option>
+        </optgroup>
+        <optgroup label="B. Istri">
+          <option value="istri">Istri</option>            
+        </optgroup>
+        <optgroup label="C. Anak">
+          <option value="anak">Anak</option>
+        </optgroup>
+      </select>
+
+      <!-- Region dropdowns -->
+      <label class="form-label small">Provinsi / Kabupaten / Kecamatan / Desa / Dusun</label>
+      <select id="reg_prov" class="form-control mb-1"><option value="">Pilih Provinsi</option></select>
+      <select id="reg_kab" class="form-control mb-1"><option value="">Pilih Kabupaten/Kota</option></select>
+      <select id="reg_kec" class="form-control mb-1"><option value="">Pilih Kecamatan</option></select>
+      <select id="reg_des" class="form-control mb-1"><option value="">Pilih Desa/Kelurahan</option></select>
+
+      <div class="row g-2 mb-2">
+        <div class="col"><input id="reg_blok" class="form-control" placeholder="Blok (opsional)"></div>
+        <div class="col"><input id="reg_no" class="form-control" placeholder="No Rumah (opsional)"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col"><input id="reg_rt" class="form-control" placeholder="RT (mis. 001)" maxlength="3" onblur="padRT(this)"></div>
+        <div class="col"><input id="reg_rw" class="form-control" placeholder="RW (mis. 001)" maxlength="3" onblur="padRW(this)"></div>
+      </div>
+
+      <textarea id="reg_alamat" class="form-control mb-2" placeholder="Alamat lengkap"></textarea>
+
+      <div class="d-grid gap-2">
+        <button id="btnRegister" class="btn btn-success" onclick="onRegister()">Daftar</button>
+      </div>
+      <p class="small">Sudah punya akun? <a href="#" id="showLogin">Login di sini</a></p>
+    </div>
+
   </div>
+
 
   <!-- Dashboard -->
   <div id="dashboardCard" class="card p-3 hidden">
@@ -505,6 +509,29 @@ auth.onAuthStateChanged(async u=>{
 
 function showAuth(){ show('authCard'); hide('dashboardCard'); }
 function showDashboard(){ hide('authCard'); show('dashboardCard'); }
+  function showAuth(){ 
+  show('authCard'); 
+  hide('dashboardCard'); 
+  showLoginForm(); // default tampilan login
+}
+
+function showLoginForm(){
+  document.getElementById("loginCard").style.display = "block";
+  document.getElementById("registerCard").style.display = "none";
+}
+function showRegisterForm(){
+  document.getElementById("loginCard").style.display = "none";
+  document.getElementById("registerCard").style.display = "block";
+}
+
+// aktifkan link toggle
+document.addEventListener("DOMContentLoaded", () => {
+  const showRegister = document.getElementById("showRegister");
+  const showLogin = document.getElementById("showLogin");
+  if(showRegister) showRegister.addEventListener("click", e => { e.preventDefault(); showRegisterForm(); });
+  if(showLogin) showLogin.addEventListener("click", e => { e.preventDefault(); showLoginForm(); });
+});
+
 
 /* ================== LOAD PROFILE & INIT DASHBOARD ================== */
 async function loadProfileAndShow(){
