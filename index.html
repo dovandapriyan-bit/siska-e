@@ -530,9 +530,16 @@ function showRegisterForm(){
 document.addEventListener("DOMContentLoaded", () => {
   const showRegister = document.getElementById("showRegister");
   const showLogin = document.getElementById("showLogin");
-  if(showRegister) showRegister.addEventListener("click", () => showRegisterForm());
-  if(showLogin) showLogin.addEventListener("click", () => showLoginForm());
+  if(showRegister) showRegister.addEventListener("click", (e) => {
+    e.preventDefault(); 
+    showRegisterForm();
+  });
+  if(showLogin) showLogin.addEventListener("click", (e) => {
+    e.preventDefault();
+    showLoginForm();
+  });
 });
+
 
 
 
