@@ -511,13 +511,7 @@ auth.onAuthStateChanged(async u=>{
   }
 });
 
-function showAuth(){ show('authCard'); hide('dashboardCard'); }
-function showDashboard(){ hide('authCard'); show('dashboardCard'); }
-  function showAuth(){ 
-  show('authCard'); 
-  hide('dashboardCard'); 
-  showLoginForm(); // default tampilan login
-}
+
 
  const auth = firebase.auth();
   const db = firebase.firestore();
