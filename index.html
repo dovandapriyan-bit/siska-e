@@ -54,7 +54,6 @@
   <div class="subtitle">(Sistem Keamanan Elektronik)</div>
 </div>
 
-
     <!-- AUTH -->
   <div id="authCard" class="card p-3">
 
@@ -69,8 +68,6 @@
      <p class="small">Belum punya akun? 
   <a href="javascript:void(0)" onclick="showRegisterForm()">Daftar di sini</a>
 </p>
-
-
     </div>
 
     <!-- FORM DAFTAR (disembunyikan awal) -->
@@ -117,11 +114,10 @@
       <div class="d-grid gap-2">
         <button id="btnRegister" class="btn btn-success" onclick="onRegister()">Daftar</button>
       </div>
-      <p class="small">Sudah punya akun? <a href="#" id="showLogin">Login di sini</a></p>
+      <p class="small">Sudah punya akun? <a href="javascript:void(0)" onclick="showLoginForm()">Login di sini</a></p>
     </div>
 
   </div>
-
 
   <!-- Dashboard -->
   <div id="dashboardCard" class="card p-3 hidden">
@@ -280,7 +276,6 @@
 
 <script>
 /* ================== CONFIG FIREBASE ================== */
-/* Ganti jika perlu. Kamu sudah berikan apiKey di awal; saya pakai itu sebagai default. */
 const firebaseConfig = {
   apiKey: "AIzaSyA6GAeIc7ZesIed9MAelUf6x_sBFdp9E-Q",
   authDomain: "dusun-super.firebaseapp.com",
@@ -297,8 +292,8 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn(
 
 /* ================== GLOBAL STATE ================== */
 let currentUser = null;
-let currentWarga = null;   // profile doc
-let currentDusun = null;   // dusun doc
+let currentWarga = null;
+let currentDusun = null;
 let mainMap = null;
 let mainMarkers = null;
 let posFormMap = null, posFormMarker = null;
@@ -321,73 +316,67 @@ function padRT(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0');
 function padRW(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0'); el.value=v; }
 function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* ================== TOGGLE LOGIN/REGISTER FORM ================== */
+function showLoginForm(){
+  $('loginCard').style.display = 'block';
+  $('registerCard').style.display = 'none';
+}
+
+function showRegisterForm(){
+  $('loginCard').style.display = 'none';
+  $('registerCard').style.display = 'block';
+}
+
 /* ================== CLOCK ================== */
 function updateClock(){ if($('clock')) $('clock').innerText = new Date().toLocaleString(); setTimeout(updateClock,1000); }
 updateClock();
 
-/* ================== LOAD REGION DROPDOWNS - FIXED WITH BETTER API ================== */
-const API_REG = "https://api.binderbyte.com/wilayah/";
-const API_KEY = "binderbyte_demo"; // API key gratis
-
-async function loadRegionDropdowns() {
-  try {
-    console.log('Loading complete Indonesia regions...');
+/* ================== LOAD REGION DROPDOWNS ================== */
+const API_REG = "https://www.emsifa.com/api-wilayah-indonesia/api/";
+async function loadRegionDropdowns(){
+  try{
+    const res = await fetch(API_REG + 'provinces.json'); 
+    const provs = await res.json();
+    const provSel = $('reg_prov');
+    provs.forEach(p=>provSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
     
-    // Reset dropdowns
-    $('reg_prov').innerHTML = '<option value="">Pilih Provinsi</option>';
-    $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
-    $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
-    $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
+    $('reg_prov').addEventListener('change', async function(){
+      $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>'; 
+      $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>'; 
+      $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
+      if(!this.value) { autofillAlamat(); return; }
+      const r = await fetch(API_REG + 'regencies/' + this.value + '.json'); 
+      const data = await r.json();
+      data.forEach(k => $('reg_kab').innerHTML += `<option value="${k.id}">${k.name}</option>`);
+      autofillAlamat();
+    });
     
-    // Load provinsi dari API yang lebih baik
-    const response = await fetch(`${API_REG}provinsi?api_key=${API_KEY}`);
-    if (!response.ok) throw new Error('API error');
-    const result = await response.json();
+    $('reg_kab').addEventListener('change', async function(){ 
+      $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>'; 
+      $('reg_des').innerHTML = '<option value="">Pilih Desa</option>'; 
+      if(!this.value) { autofillAlamat(); return; } 
+      const r = await fetch(API_REG + 'districts/' + this.value + '.json'); 
+      const data = await r.json(); 
+      data.forEach(k => $('reg_kec').innerHTML += `<option value="${k.id}">${k.name}</option>`); 
+      autofillAlamat(); 
+    });
     
-    if (result.value) {
-      result.value.forEach(prov => {
-        $('reg_prov').innerHTML += `<option value="${prov.id}">${prov.name}</option>`;
-      });
-    }
+    $('reg_kec').addEventListener('change', async function(){ 
+      $('reg_des').innerHTML = '<option value="">Pilih Desa</option>'; 
+      if(!this.value) { autofillAlamat(); return; } 
+      const r = await fetch(API_REG + 'villages/' + this.value + '.json'); 
+      const data = await r.json(); 
+      data.forEach(d => $('reg_des').innerHTML += `<option value="${d.id}">${d.name}</option>`); 
+      autofillAlamat(); 
+    });
     
-    // Event listeners
-    $('reg_prov').onchange = () => loadKabupatenByProvince($('reg_prov').value);
-    $('reg_kab').onchange = () => loadKecamatanByKabupaten($('reg_kab').value);
-    $('reg_kec').onchange = () => loadDesaByKecamatan($('reg_kec').value);
-    
-    console.log('Regions loaded successfully');
-    
-  } catch (error) {
-    console.error('API failed, using comprehensive manual data:', error);
-    loadComprehensiveManualRegions();
-  }
+    $('reg_des').addEventListener('change', ()=>{ autofillAlamat(); });
+    ['reg_blok','reg_no','reg_rt','reg_rw'].forEach(id=>{ 
+      const el=$(id); 
+      if(el) el.addEventListener('input', autofillAlamat); 
+    });
+  }catch(e){ console.warn('Gagal load region', e); }
 }
-
-async function loadKabupatenByProvince(provId) {
-  if (!provId) return;
-  
-  try {
-    $('reg_kab').innerHTML = '<option value="">Loading...</option>';
-    const response = await fetch(`${API_REG}kabupaten?id_provinsi=${provId}&api_key=${API_KEY}`);
-    const result = await response.json();
-    
-    $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
-    if (result.value) {
-      result.value.forEach(kab => {
-        $('reg_kab').innerHTML += `<option value="${kab.id}">${kab.name}</option>`;
-      });
-    }
-    
-    $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
-    $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
-    
-  } catch (error) {
-    console.error('Failed to load kabupaten:', error);
-    loadManualKabupaten(provId);
-  }
-}
-
-// ... fungsi lainnya similar
 
 /* ================== AUTOFILL ALAMAT ================== */
 function autofillAlamat(){
@@ -395,13 +384,11 @@ function autofillAlamat(){
   const kab = $('reg_kab').selectedOptions[0]?.text || '';
   const kec = $('reg_kec').selectedOptions[0]?.text || '';
   const des = $('reg_des').selectedOptions[0]?.text || '';
-  const dusun = $('reg_dus').selectedOptions[0]?.dataset?.nama || $('reg_dus').selectedOptions[0]?.text || '';
   const blok = $('reg_blok').value || '';
   const no = $('reg_no').value || '';
   const rt = $('reg_rt').value || '';
   const rw = $('reg_rw').value || '';
   const parts = [];
-  if(dusun) parts.push(dusun);
   if(blok || no) parts.push((blok?('Blok '+blok):'') + (no?(' - '+no):''));
   if(rt||rw) parts.push('RT '+(rt||'-')+' / RW '+(rw||'-'));
   if(des) parts.push('Desa '+des);
@@ -411,7 +398,7 @@ function autofillAlamat(){
   $('reg_alamat').value = parts.join(', ');
 }
 
-/* ================== REGISTER (no password in DB) ================== */
+/* ================== REGISTER ================== */
 async function onRegister(){
   const nama = $('reg_nama').value.trim();
   const hp = $('reg_hp').value.trim();
@@ -421,9 +408,6 @@ async function onRegister(){
   const kab = $('reg_kab').selectedOptions[0]?.text || '';
   const kec = $('reg_kec').selectedOptions[0]?.text || '';
   const des = $('reg_des').selectedOptions[0]?.text || '';
-  const dusunSel = $('reg_dus').selectedOptions[0] || null;
-  const dusunId = dusunSel ? (dusunSel.dataset?.kode || dusunSel.value) : null;
-  const dusunNama = dusunSel ? (dusunSel.dataset.nama || '') : '';
   const alamat = $('reg_alamat').value.trim();
   const blok = $('reg_blok').value.trim();
   const no = $('reg_no').value.trim();
@@ -442,28 +426,27 @@ async function onRegister(){
     const uc = await auth.createUserWithEmailAndPassword(email, password);
     const uid = uc.user.uid;
 
-    const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
+    const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
     const status = kepalaRoles.includes(role) ? 'aktif' : 'pending';
 
     await db.collection('Warga').doc(uid).set({
       nama, phone: norm, role, status,
-      provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des, dusunId: dusunId, dusunNama: dusunNama,
+      provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des,
       alamat, blok, no, rt, rw, kodeDusun: null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // clear password input immediately (no history)
-        // clear password input immediately (no history)
     $('reg_password').value = '';
     await auth.signOut();
     Swal.fire({
       icon: 'success',
       title: 'Pendaftaran Berhasil',
-      text: 'Silakan login menggunakan panel sebelah.'
+      text: 'Silakan login menggunakan panel login.'
     });
     clearRegister();
+    showLoginForm();
 
-    } catch(e){
+  } catch(e){
     console.error(e);
     Swal.fire({
       icon: 'error',
@@ -471,16 +454,17 @@ async function onRegister(){
       text: e.message || 'Terjadi kesalahan saat pendaftaran'
     });
   }
-
+}
 
 function clearRegister(){
-  ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'].forEach(id=>{ 
+    if($(id)) $(id).value=''; 
+  });
   $('reg_status').selectedIndex = 0;
   $('reg_prov').selectedIndex = 0;
   $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
   $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
   $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
-  $('reg_dus').innerHTML = '<option value="">Pilih Dusun</option>';
 }
 
 /* ================== LOGIN ================== */
@@ -511,67 +495,23 @@ auth.onAuthStateChanged(async u=>{
   }
 });
 
+function showAuth(){ 
+  show('authCard'); 
+  hide('dashboardCard'); 
+}
 
+function showDashboard(){ 
+  hide('authCard'); 
+  show('dashboardCard'); 
+}
 
- const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  function show(id){ document.getElementById(id).style.display = 'block'; }
-  function hide(id){ document.getElementById(id).style.display = 'none'; }
-
-  function showAuth(){ 
-    show('authCard'); 
-    hide('dashboardCard'); 
-    showLoginForm(); // default tampil login
-  }
-  function showDashboard(){ 
-    hide('authCard'); 
-    show('dashboardCard'); 
-  }
-
-  function onLogin(){
-    const hp = document.getElementById('login_hp').value;
-    const pass = document.getElementById('login_pass').value;
-    // proses login...
-  }
-
-  function onRegister(){
-    const nama = document.getElementById('reg_nama').value;
-    const hp = document.getElementById('reg_hp').value;
-    const pass = document.getElementById('reg_password').value;
-    // proses register...
-  }
-
-  // ✅ fungsi tambahan biar input hp hanya angka
-  function formatPhoneTyping(el){
-    el.value = el.value.replace(/[^0-9]/g, '');
-  }
-
-  // ✅ fungsi toggle login/register
-  function showLoginForm(){
-    document.getElementById("loginCard").style.display = "block";
-    document.getElementById("registerCard").style.display = "none";
-  }
-  function showRegisterForm(){
-    document.getElementById("loginCard").style.display = "none";
-    document.getElementById("registerCard").style.display = "block";
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const showRegister = document.getElementById("showRegister");
-    const showLogin = document.getElementById("showLogin");
-    if(showRegister) showRegister.addEventListener("click", (e) => {
-      e.preventDefault();
-      showRegisterForm();
-    });
-    if(showLogin) showLogin.addEventListener("click", (e) => {
-      e.preventDefault();
-      showLoginForm();
-    });
-  });
-
-
-
+/* ================== LOGOUT ================== */
+async function onLogout(){
+  try{
+    await auth.signOut();
+    toast("Logout berhasil");
+  }catch(e){ console.error(e); err(e.message || String(e)); }
+}
 
 /* ================== LOAD PROFILE & INIT DASHBOARD ================== */
 async function loadProfileAndShow(){
@@ -585,11 +525,19 @@ async function loadProfileAndShow(){
   $('display_status').innerText = (currentWarga.data.status || '').toUpperCase();
   showDashboard();
 
-  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
   if(kepalaRoles.includes(currentWarga.data.role)){
-    show('createDusunCard'); show('btnOpenPosForm'); show('pendingCard'); $('regenKodeBtn').classList.remove('hidden'); $('expireKodeBtn').classList.remove('hidden');
+    show('createDusunCard'); 
+    show('btnOpenPosForm'); 
+    show('pendingCard'); 
+    $('regenKodeBtn').classList.remove('hidden'); 
+    $('expireKodeBtn').classList.remove('hidden');
   } else {
-    hide('createDusunCard'); hide('btnOpenPosForm'); hide('pendingCard'); $('regenKodeBtn').classList.add('hidden'); $('expireKodeBtn').classList.add('hidden');
+    hide('createDusunCard'); 
+    hide('btnOpenPosForm'); 
+    hide('pendingCard'); 
+    $('regenKodeBtn').classList.add('hidden'); 
+    $('expireKodeBtn').classList.add('hidden');
   }
 
   if(currentWarga.data.kodeDusun){
@@ -606,22 +554,21 @@ async function loadProfileAndShow(){
 
   refreshFamilyList();
   loadRegionDropdowns();
-  loadDusunDropdown();
   loadKejadianOptions();
   initMainMap();
   loadPendingList();
 }
 
-/* ================== CREATE DUSUN (only kepala) with kodeExpiresAt (1 jam) ================== */
+/* ================== CREATE DUSUN ================== */
 async function createDusun(){
   if(!currentWarga) return err("Login dulu");
-  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
   if(!kepalaRoles.includes(currentWarga.data.role)) return err("Hanya subrole kepala boleh membuat dusun");
   const nama = $('dusun_nama').value.trim();
   if(!nama) return err("Nama dusun wajib");
   try{
     const kode = generateCode(6);
-    const expiresMs = Date.now() + (60 * 60 * 1000); // 1 jam
+    const expiresMs = Date.now() + (60 * 60 * 1000);
     const payload = {
       nama, kode,
       kepalaId: currentWarga.id,
@@ -641,23 +588,29 @@ async function createDusun(){
   }catch(e){ console.error(e); err(e.message || String(e)); }
 }
 
-/* ================ regenerate / expire kode ================ */
+/* ================ REGENERATE / EXPIRE KODE ================ */
 async function regenerateKodeDusun(){
   if(!currentDusun || !currentWarga) return;
   if(currentDusun.data.kepalaId !== currentWarga.id) return err("Hanya kepala yang membuat kode bisa regenerate");
   try{
     const newCode = generateCode(6);
     const expiresMs = Date.now() + (60*60*1000);
-    await db.collection('Dusun').doc(currentDusun.id).update({ kode:newCode, kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(expiresMs) });
+    await db.collection('Dusun').doc(currentDusun.id).update({ 
+      kode:newCode, 
+      kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(expiresMs) 
+    });
     await loadDusunByCode(newCode);
     toast("Kode berhasil diganti");
   }catch(e){ console.error(e); err("Gagal regenerate kode"); }
 }
+
 async function expireKodeNow(){
   if(!currentDusun || !currentWarga) return;
   if(currentDusun.data.kepalaId !== currentWarga.id) return err("Hanya kepala yang membuat kode bisa expire");
   try{
-    await db.collection('Dusun').doc(currentDusun.id).update({ kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(Date.now()-1000) });
+    await db.collection('Dusun').doc(currentDusun.id).update({ 
+      kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(Date.now()-1000) 
+    });
     await loadDusunByCode(currentDusun.data.kode);
     toast("Kode di-expire sekarang");
   }catch(e){ console.error(e); err("Gagal expire kode"); }
@@ -666,31 +619,42 @@ async function expireKodeNow(){
 /* ================== LOAD DUSUN BY CODE & COUNTDOWN ================== */
 async function loadDusunByCode(kode){
   try{
-    // get by kode
     const snap = await db.collection('Dusun').where('kode','==',kode).limit(1).get();
-    if(snap.empty){ $('kepalaInfo').innerHTML = '<div class="muted">Dusun tidak ditemukan.</div>'; return; }
-    const doc = snap.docs[0]; currentDusun = { id: doc.id, data: doc.data() };
+    if(snap.empty){ 
+      $('kepalaInfo').innerHTML = '<div class="muted">Dusun tidak ditemukan.</div>'; 
+      return; 
+    }
+    const doc = snap.docs[0]; 
+    currentDusun = { id: doc.id, data: doc.data() };
     const d = currentDusun.data;
     const kepalaAlamat = d.kepalaAlamat || (currentWarga.data.alamat || '-');
-    $('kepalaInfo').innerHTML = `<div><strong>${escapeHtml(d.kepalaNama||'-')}</strong></div><div class="muted small">HP: ${escapeHtml(d.kepalaHp||'-')}</div><div class="muted small">Alamat Kepala: ${escapeHtml(kepalaAlamat||'-')}</div>`;
-    // show kode only if current user is kepala that created it
+    $('kepalaInfo').innerHTML = `
+      <div><strong>${escapeHtml(d.kepalaNama||'-')}</strong></div>
+      <div class="muted small">HP: ${escapeHtml(d.kepalaHp||'-')}</div>
+      <div class="muted small">Alamat Kepala: ${escapeHtml(kepalaAlamat||'-')}</div>`;
+    
     if(currentWarga && currentWarga.id === d.kepalaId){
       $('myDusunCode').innerText = 'Kode dusun: ' + (d.kode||'');
       $('myDusunCode').classList.remove('hidden');
       show('createDusunCard');
-      show('regenKodeBtn'); show('expireKodeBtn');
-      // countdown
+      show('regenKodeBtn'); 
+      show('expireKodeBtn');
+      
       const expiresTs = d.kodeExpiresAt && d.kodeExpiresAt.toMillis ? d.kodeExpiresAt.toMillis() : null;
       if(expiresTs){
         startKodeCountdown(expiresTs);
       } else {
         $('kodeCountdown').innerText = '';
-        if(kodeCountdownTimer){ clearInterval(kodeCountdownTimer); kodeCountdownTimer = null; }
+        if(kodeCountdownTimer){ 
+          clearInterval(kodeCountdownTimer); 
+          kodeCountdownTimer = null; 
+        }
       }
     } else {
       $('myDusunCode').innerText = '';
       $('kodeCountdown').innerText = '';
-      hide('regenKodeBtn'); hide('expireKodeBtn');
+      hide('regenKodeBtn'); 
+      hide('expireKodeBtn');
     }
     hide('joinDusunCard');
   }catch(e){ console.error(e); }
@@ -744,7 +708,6 @@ async function loadMarkers(){
   mainMarkers.clearLayers();
   if(!currentWarga || !currentWarga.data.kodeDusun) return;
   try{
-    // Avoid composite index by not using orderBy in Firestore query; retrieve all and sort client-side
     const snap = await db.collection('PosDusun').where('dusunCode','==', currentWarga.data.kodeDusun).get();
     if(snap.empty) return;
     const bounds = [];
@@ -752,8 +715,15 @@ async function loadMarkers(){
       const d = doc.data();
       if(d.lat && d.lng){
         const color = d.status === 'active' ? 'green' : 'red';
-        const marker = L.circleMarker([d.lat, d.lng], { radius:8, color, fillColor: color, fillOpacity:0.9 }).addTo(mainMarkers);
-        let popup = `<div><strong>${escapeHtml(d.nama||'-')}</strong></div><div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div><div class="muted small">Jenis: ${escapeHtml(d.jenis||'')}</div><div class="muted small">Status: ${escapeHtml(d.status||'')}</div><div class="muted small">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div>`;
+        const marker = L.circleMarker([d.lat, d.lng], { 
+          radius:8, color, fillColor: color, fillOpacity:0.9 
+        }).addTo(mainMarkers);
+        let popup = `
+          <div><strong>${escapeHtml(d.nama||'-')}</strong></div>
+          <div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div>
+          <div class="muted small">Jenis: ${escapeHtml(d.jenis||'')}</div>
+          <div class="muted small">Status: ${escapeHtml(d.status||'')}</div>
+          <div class="muted small">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div>`;
         if(d.foto) popup += `<div style="margin-top:6px"><img src="${d.foto}" style="max-width:200px;border-radius:6px;"></div>`;
         marker.bindPopup(popup);
         bounds.push([d.lat,d.lng]);
@@ -763,10 +733,10 @@ async function loadMarkers(){
   }catch(e){ console.error(e); }
 }
 
-/* ================== POS FORM logic (modal) ================== */
+/* ================== POS FORM ================== */
 function openPosForm(){
   if(!currentWarga) return err("Login dulu");
-  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
   if(!kepalaRoles.includes(currentWarga.data.role)) return err("Hanya subrole kepala boleh menambah pos");
   posModalEditingId = null;
   $('posModalTitle').innerText = 'Tambah Pos';
@@ -776,7 +746,6 @@ function openPosForm(){
 
 function closePosForm(){
   hide('posModal');
-  // clear form
   ['pos_name','pos_rt','pos_rw'].forEach(id=>{ if($(id)) $(id).value=''; });
   $('pos_status').value = 'active';
   $('pos_jenis').value = 'pos_dusun';
@@ -814,7 +783,6 @@ function setPosLocationFromMap(){
   toast("Lokasi pos telah ditetapkan");
 }
 
-/* ================== SAVE POS (modal) - supports add & edit ================== */
 async function savePosFromModal(){
   const editingId = $('posModal').dataset.editingId || null;
   if(editingId) { return updatePos(editingId); }
@@ -890,14 +858,18 @@ async function updatePos(id){
 
 /* ================== LOAD POS LIST ================== */
 async function loadPosList(){
-  if(!currentWarga || !currentWarga.data.kodeDusun){ $('posList').innerHTML = '<div class="muted">Gabung dusun untuk melihat daftar pos.</div>'; return; }
+  if(!currentWarga || !currentWarga.data.kodeDusun){ 
+    $('posList').innerHTML = '<div class="muted">Gabung dusun untuk melihat daftar pos.</div>'; 
+    return; 
+  }
   try{
-    // avoid composite index: get then sort client-side by createdAt
     const snap = await db.collection('PosDusun').where('dusunCode','==', currentWarga.data.kodeDusun).get();
-    if(snap.empty){ $('posList').innerHTML = '<div class="muted">Belum ada pos.</div>'; return; }
+    if(snap.empty){ 
+      $('posList').innerHTML = '<div class="muted">Belum ada pos.</div>'; 
+      return; 
+    }
     const arr = [];
     snap.forEach(doc => arr.push({ id: doc.id, data: doc.data() }));
-    // sort desc by createdAt
     arr.sort((a,b)=>{
       const ta = a.data.createdAt ? a.data.createdAt.seconds || 0 : 0;
       const tb = b.data.createdAt ? b.data.createdAt.seconds || 0 : 0;
@@ -906,9 +878,18 @@ async function loadPosList(){
     let html = '';
     arr.forEach(item=>{
       const d = item.data; const id = item.id;
-      html += `<div class="p-2 border rounded mb-2"><div class="d-flex justify-content-between"><div><strong>${escapeHtml(d.nama)}</strong><div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div></div><div>`;
-      html += `<button class="btn btn-sm btn-link" onclick="viewPos('${id}')">View</button>`;
-      if(currentWarga.data.role === 'kepala_dusun') html += ` <button class="btn btn-sm btn-primary" onclick="editPos('${id}')">Edit</button> <button class="btn btn-sm btn-danger" onclick="deletePos('${id}')">Hapus</button>`;
+      html += `
+        <div class="p-2 border rounded mb-2">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>${escapeHtml(d.nama)}</strong>
+              <div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div>
+            </div>
+            <div>
+              <button class="btn btn-sm btn-link" onclick="viewPos('${id}')">View</button>`;
+      if(currentWarga.data.role === 'kepala_dusun') 
+        html += ` <button class="btn btn-sm btn-primary" onclick="editPos('${id}')">Edit</button> 
+                  <button class="btn btn-sm btn-danger" onclick="deletePos('${id}')">Hapus</button>`;
       html += `</div></div>`;
       if(d.foto) html += `<div class="mt-2"><img src="${d.foto}" class="pos-photo"></div>`;
       html += `<div class="muted small mt-2">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div></div>`;
@@ -923,7 +904,8 @@ async function viewPos(id){
     const doc = await db.collection('PosDusun').doc(id).get();
     if(!doc.exists) return err("Pos tidak ditemukan");
     const d = doc.data();
-    const html = `<div><strong>${escapeHtml(d.nama||'-')}</strong></div>
+    const html = `
+      <div><strong>${escapeHtml(d.nama||'-')}</strong></div>
       <div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div>
       <div class="muted small">Jenis: ${escapeHtml(d.jenis||'')}</div>
       <div class="muted small">Status: ${(d.status||'').toUpperCase()}</div>
@@ -934,7 +916,15 @@ async function viewPos(id){
     setTimeout(()=>{ initPosViewMap(d.lat,d.lng); }, 200);
   }catch(e){ console.error(e); err("Gagal tampilkan pos"); }
 }
-function closePosView(){ hide('posViewModal'); if(posViewMap){ posViewMap.remove(); posViewMap=null; } }
+
+function closePosView(){ 
+  hide('posViewModal'); 
+  if(posViewMap){ 
+    posViewMap.remove(); 
+    posViewMap=null; 
+  } 
+}
+
 function initPosViewMap(lat,lng){
   if(posViewMap) posViewMap.remove();
   posViewMap = L.map('posViewMap').setView([lat||-6.2, lng||106.8166], 15);
@@ -956,23 +946,40 @@ async function editPos(id){
     $('pos_jenis').value = d.jenis || 'pos_dusun';
     $('posPhotoPreview').innerHTML = d.foto ? `<img src="${d.foto}" class="pos-photo">` : '';
     tempChosenPos.lat = d.lat || null; tempChosenPos.lng = d.lng || null;
-    $('chosenPosCoord').innerText = tempChosenPos.lat ? `Terpilih: ${tempChosenPos.lat.toFixed(6)}, ${tempChosenPos.lng.toFixed(6)}` : 'Lokasi belum ditetapkan.';
+    $('chosenPosCoord').innerText = tempChosenPos.lat ? 
+      `Terpilih: ${tempChosenPos.lat.toFixed(6)}, ${tempChosenPos.lng.toFixed(6)}` : 
+      'Lokasi belum ditetapkan.';
     $('posModal').dataset.editingId = id;
     $('posModalTitle').innerText = 'Edit Pos';
-    show('posModal'); setTimeout(()=>{ initPosFormMap(); if(tempChosenPos.lat && tempChosenPos.lng){ if(posFormMarker) posFormMap.removeLayer(posFormMarker); posFormMarker = L.marker([tempChosenPos.lat,tempChosenPos.lng]).addTo(posFormMap); posFormMap.setView([tempChosenPos.lat,tempChosenPos.lng],15); } },200);
+    show('posModal'); 
+    setTimeout(()=>{ 
+      initPosFormMap(); 
+      if(tempChosenPos.lat && tempChosenPos.lng){ 
+        if(posFormMarker) posFormMap.removeLayer(posFormMarker); 
+        posFormMarker = L.marker([tempChosenPos.lat,tempChosenPos.lng]).addTo(posFormMap); 
+        posFormMap.setView([tempChosenPos.lat,tempChosenPos.lng],15); 
+      } 
+    },200);
   }catch(e){ console.error(e); err("Gagal edit pos"); }
 }
 
 async function deletePos(id){
   if(!currentWarga) return err("Login dulu");
   if(currentWarga.data.role !== 'kepala_dusun') return err("Hanya Kepala Dusun boleh hapus pos");
-  const conf = await Swal.fire({ title:'Hapus pos?', text:'Data akan dihapus permanen', icon:'warning', showCancelButton:true });
+  const conf = await Swal.fire({ 
+    title:'Hapus pos?', 
+    text:'Data akan dihapus permanen', 
+    icon:'warning', 
+    showCancelButton:true 
+  });
   if(!conf.isConfirmed) return;
   try{
     const doc = await db.collection('PosDusun').doc(id).get();
     if(doc.exists){
       const d = doc.data();
-      if(d.fotoPath){ try{ await storage.ref().child(d.fotoPath).delete(); }catch(e){ console.warn(e); } }
+      if(d.fotoPath){ 
+        try{ await storage.ref().child(d.fotoPath).delete(); }catch(e){ console.warn(e); } 
+      }
       await db.collection('PosDusun').doc(id).delete();
       toast("Pos dihapus");
       loadPosList(); loadMarkers();
@@ -980,7 +987,7 @@ async function deletePos(id){
   }catch(e){ console.error(e); err("Gagal hapus pos"); }
 }
 
-/* ================== KEJADIAN OPTIONS (SOS card) ================== */
+/* ================== KEJADIAN OPTIONS ================== */
 function loadKejadianOptions(){
   const types = [
     { key:'Kebakaran', icon:'🔥' },
@@ -998,6 +1005,7 @@ function loadKejadianOptions(){
   });
   window._selectedKejadian = null;
 }
+
 function selectKejadian(key, icon){
   window._selectedKejadian = key;
   Array.from(document.querySelectorAll('.kejadian-option')).forEach(el=>el.style.borderColor='#eee');
@@ -1005,21 +1013,28 @@ function selectKejadian(key, icon){
   if(found) found.style.borderColor = '#3b82f6';
 }
 
-/* ================== OPEN SOS (submit) ================== */
+/* ================== OPEN SOS ================== */
 async function openSOS(){
   const jenis = window._selectedKejadian || null;
   if(!jenis) return err("Pilih jenis kejadian terlebih dahulu");
   const locOpt = $('lap_loc_opt').value;
   let desc = null;
   if(locOpt === 'lainnya'){
-    const { value: input } = await Swal.fire({ title:'Deskripsi lokasi', input: 'text', inputPlaceholder: 'Jelaskan alamat atau titik', showCancelButton:true });
+    const { value: input } = await Swal.fire({ 
+      title:'Deskripsi lokasi', 
+      input: 'text', 
+      inputPlaceholder: 'Jelaskan alamat atau titik', 
+      showCancelButton:true 
+    });
     if(!input) return;
     desc = input;
   }
   let lat=null,lng=null;
   try{
     if(navigator.geolocation){
-      const pos = await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res,rej,{ timeout:10000 }));
+      const pos = await new Promise((res,rej)=> 
+        navigator.geolocation.getCurrentPosition(res,rej,{ timeout:10000 })
+      );
       lat = pos.coords.latitude; lng = pos.coords.longitude;
     }
   }catch(e){ console.warn('gps denied'); }
@@ -1035,23 +1050,19 @@ async function openSOS(){
   }catch(e){ console.error(e); err("Gagal kirim laporan"); }
 }
 
-/* ================== REPORTS: subscribe & render (avoid composite index) ================== */
+/* ================== REPORTS ================== */
 let reportsCache = [];
 function subscribeReportsForDusun(kodeDusun){
   if(reportsUnsub) reportsUnsub();
   if(!kodeDusun) { renderEmptyReports(); return; }
-  // Avoid using orderBy in query; get all then client-side filter & sort
   const since = new Date(Date.now() - 90*24*60*60*1000);
-  // fetch once and set listener on collection changes (simple approach: onSnapshot without orderBy)
   reportsUnsub = db.collection('Laporan').where('dusunCode','==', kodeDusun).onSnapshot(snapshot=>{
     reportsCache = [];
     snapshot.forEach(doc => {
       const d = doc.data();
-      // filter by createdAt >= since if present
       if(d.createdAt && d.createdAt.toDate && d.createdAt.toDate() < since) return;
       reportsCache.push({ id: doc.id, data: d });
     });
-    // sort by createdAt desc
     reportsCache.sort((a,b)=>{
       const ta = a.data.createdAt ? (a.data.createdAt.seconds || 0) : 0;
       const tb = b.data.createdAt ? (b.data.createdAt.seconds || 0) : 0;
@@ -1067,12 +1078,29 @@ function renderReportsFromCache(){
   const my = reportsCache.filter(r => r.data.userId === currentWarga.id);
   const others = reportsCache.filter(r => r.data.userId !== currentWarga.id);
   const myEl = $('myReports'), otherEl = $('otherReports');
-  myEl.innerHTML = my.length ? my.map(r=>`<div class="p-2 border rounded mb-2"><strong>${escapeHtml(r.data.jenis||'-')}</strong><div class="muted small">${r.data.lokasiDeskripsi||''} · ${r.data.createdAt ? new Date(r.data.createdAt.seconds*1000).toLocaleString() : '-'}</div></div>`).join('') : '<div class="muted">Belum ada laporan Anda.</div>';
-  otherEl.innerHTML = others.length ? others.map(r=>`<div class="p-2 border rounded mb-2"><strong>${escapeHtml(r.data.jenis||'-')}</strong><div class="muted small">Oleh: ${escapeHtml(r.data.userNama||'')} · ${r.data.createdAt ? new Date(r.data.createdAt.seconds*1000).toLocaleString() : '-'}</div><div class="muted small">${r.data.lokasiDeskripsi||''}</div></div>`).join('') : '<div class="muted">Belum ada laporan warga lain.</div>';
+  myEl.innerHTML = my.length ? 
+    my.map(r=>`
+      <div class="p-2 border rounded mb-2">
+        <strong>${escapeHtml(r.data.jenis||'-')}</strong>
+        <div class="muted small">${r.data.lokasiDeskripsi||''} · ${r.data.createdAt ? new Date(r.data.createdAt.seconds*1000).toLocaleString() : '-'}</div>
+      </div>`).join('') : 
+    '<div class="muted">Belum ada laporan Anda.</div>';
+  otherEl.innerHTML = others.length ? 
+    others.map(r=>`
+      <div class="p-2 border rounded mb-2">
+        <strong>${escapeHtml(r.data.jenis||'-')}</strong>
+        <div class="muted small">Oleh: ${escapeHtml(r.data.userNama||'')} · ${r.data.createdAt ? new Date(r.data.createdAt.seconds*1000).toLocaleString() : '-'}</div>
+        <div class="muted small">${r.data.lokasiDeskripsi||''}</div>
+      </div>`).join('') : 
+    '<div class="muted">Belum ada laporan warga lain.</div>';
 }
-function renderEmptyReports(){ $('myReports').innerHTML='<div class="muted">Tidak ada laporan</div>'; $('otherReports').innerHTML='<div class="muted">Tidak ada laporan</div>'; }
 
-/* ================== STATISTICS (30 hari) ================== */
+function renderEmptyReports(){ 
+  $('myReports').innerHTML='<div class="muted">Tidak ada laporan</div>'; 
+  $('otherReports').innerHTML='<div class="muted">Tidak ada laporan</div>'; 
+}
+
+/* ================== STATISTICS ================== */
 function renderStatsFromCache(){
   const since = new Date(Date.now() - 30*24*60*60*1000);
   const recent = reportsCache.filter(r => r.data.createdAt && new Date(r.data.createdAt.seconds*1000) >= since);
@@ -1081,78 +1109,155 @@ function renderStatsFromCache(){
   const total = counts.reduce((s,v)=>s+v,0);
   if(chartKej) chartKej.destroy();
   const ctx = $('chartKejadian').getContext('2d');
-  chartKej = new Chart(ctx,{ type:'bar', data:{ labels, datasets:[{ label:'Jumlah', data:counts, backgroundColor:['#ef4444','#f59e0b','#16a34a','#3b82f6','#9b59b6'] }] }, options:{ responsive:true, maintainAspectRatio:false }});
+  chartKej = new Chart(ctx,{ 
+    type:'bar', 
+    data:{ 
+      labels, 
+      datasets:[{ 
+        label:'Jumlah', 
+        data:counts, 
+        backgroundColor:['#ef4444','#f59e0b','#16a34a','#3b82f6','#9b59b6'] 
+      }] 
+    }, 
+    options:{ responsive:true, maintainAspectRatio:false }
+  });
   let cat='AMAN', cls='status-aman';
   if(total>=20){ cat='RAWAN'; cls='status-rawan'; } else if(total>=6){ cat='WASPADA'; cls='status-waspada'; }
   $('statSummary').innerHTML = `<div>Total 30 hari: <strong>${total}</strong> · <span class="${cls}">${cat}</span></div>`;
   let html = '<table class="table table-sm mt-2"><thead><tr><th>Jenis</th><th>Jumlah</th><th>Persen</th></tr></thead><tbody>';
-  labels.forEach((l,i)=>{ const c = counts[i]; const pct = total ? Math.round(c/total*100) : 0; html += `<tr><td>${l}</td><td>${c}</td><td style="width:60%"><div class="progress"><div class="progress-bar" role="progressbar" style="width:${pct}%">${pct}%</div></div></td></tr>`; });
+  labels.forEach((l,i)=>{ 
+    const c = counts[i]; 
+    const pct = total ? Math.round(c/total*100) : 0; 
+    html += `
+      <tr>
+        <td>${l}</td>
+        <td>${c}</td>
+        <td style="width:60%">
+          <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width:${pct}%">${pct}%</div>
+          </div>
+        </td>
+      </tr>`; 
+  });
   html += '</tbody></table>';
   $('statSummary').innerHTML += html;
 }
 
-/* ================== FAMILY: anggota alamat sama ================== */
+/* ================== FAMILY ================== */
 async function refreshFamilyList(){
   if(!currentWarga) return;
-  if(!currentWarga.data.kodeDusun){ $('familyList').innerHTML = '<div class="muted">Belum gabung dusun</div>'; return; }
+  if(!currentWarga.data.kodeDusun){ 
+    $('familyList').innerHTML = '<div class="muted">Belum gabung dusun</div>'; 
+    return; 
+  }
   try{
     const snap = await db.collection('Warga').where('kodeDusun','==', currentWarga.data.kodeDusun).get();
-    if(snap.empty){ $('familyList').innerHTML = '<div class="muted">Tidak ada anggota</div>'; return; }
+    if(snap.empty){ 
+      $('familyList').innerHTML = '<div class="muted">Tidak ada anggota</div>'; 
+      return; 
+    }
     const list = [];
     snap.forEach(doc => list.push({ id: doc.id, data: doc.data() }));
     const keyComparator = (d) => `${d.alamat||''}|${d.blok||''}|${d.no||''}|${d.rt||''}|${d.rw||''}`;
     const myKey = keyComparator(currentWarga.data);
     const myMembers = list.filter(x => keyComparator(x.data) === myKey);
-    if(!myMembers.length){ $('familyList').innerHTML = '<div class="muted">Belum ada anggota keluarga di alamat ini</div>'; return; }
+    if(!myMembers.length){ 
+      $('familyList').innerHTML = '<div class="muted">Belum ada anggota keluarga di alamat ini</div>'; 
+      return; 
+    }
     let html = '<table class="table table-sm"><thead><tr><th>Nama</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
     myMembers.forEach(m => {
       const d = m.data;
       let aksi = '';
-      const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
+      const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
       if(kepalaRoles.includes(currentWarga.data.role) && m.id !== currentWarga.id){
-        aksi = d.status !== 'aktif' ? `<button class="btn btn-sm btn-success" onclick="approveUser('${m.id}')">Verifikasi</button>` : '<span class="muted small">Terverifikasi</span>';
+        aksi = d.status !== 'aktif' ? 
+          `<button class="btn btn-sm btn-success" onclick="approveUser('${m.id}')">Verifikasi</button>` : 
+          '<span class="muted small">Terverifikasi</span>';
       }
-      html += `<tr><td>${escapeHtml(d.nama||'')}</td><td>${escapeHtml(d.role||'')}</td><td>${escapeHtml(d.status||'')}</td><td>${aksi}</td></tr>`;
+      html += `
+        <tr>
+          <td>${escapeHtml(d.nama||'')}</td>
+          <td>${escapeHtml(d.role||'')}</td>
+          <td>${escapeHtml(d.status||'')}</td>
+          <td>${aksi}</td>
+        </tr>`;
     });
     html += '</tbody></table>';
     $('familyList').innerHTML = html;
   }catch(e){ console.error(e); $('familyList').innerHTML = '<div class="muted">Gagal muat keluarga</div>'; }
 }
 
-/* approve user by kepala */
+/* ================== APPROVE USER ================== */
 async function approveUser(uid){
-  try{ await db.collection('Warga').doc(uid).update({ status:'aktif', approvedBy: currentWarga.id, approvedAt: firebase.firestore.FieldValue.serverTimestamp() }); toast("Warga disetujui"); refreshFamilyList(); loadPendingList(); }catch(e){ console.error(e); err("Gagal approve"); }
+  try{ 
+    await db.collection('Warga').doc(uid).update({ 
+      status:'aktif', 
+      approvedBy: currentWarga.id, 
+      approvedAt: firebase.firestore.FieldValue.serverTimestamp() 
+    }); 
+    toast("Warga disetujui"); 
+    refreshFamilyList(); 
+    loadPendingList(); 
+  }catch(e){ console.error(e); err("Gagal approve"); }
 }
 
-/* pending list load (kepala) */
+/* ================== PENDING LIST ================== */
 async function loadPendingList(){
-  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga','istri_kepala_dusun'];
-  if(!currentWarga || !kepalaRoles.includes(currentWarga.data.role) || !currentWarga.data.kodeDusun) { $('pendingList') && ($('pendingList').innerHTML=''); return; }
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
+  if(!currentWarga || !kepalaRoles.includes(currentWarga.data.role) || !currentWarga.data.kodeDusun) { 
+    if($('pendingList')) $('pendingList').innerHTML=''; 
+    return; 
+  }
   try{
     const snap = await db.collection('Warga').where('kodeDusun','==', currentWarga.data.kodeDusun).where('status','==','pending').get();
     const container = $('pendingList');
     if(!container) return;
-    if(snap.empty){ container.innerHTML = '<div class="muted">Tidak ada pendaftar pending</div>'; return; }
-    let html=''; snap.forEach(doc => { const d = doc.data(); html += `<div class="d-flex justify-content-between align-items-center mb-2"><div><strong>${escapeHtml(d.nama||'')}</strong><div class="muted small">${escapeHtml(d.phone||'')}</div></div><div><button class="btn btn-sm btn-success" onclick="approveUser('${doc.id}')">Setujui</button></div></div>`; });
+    if(snap.empty){ 
+      container.innerHTML = '<div class="muted">Tidak ada pendaftar pending</div>'; 
+      return; 
+    }
+    let html=''; 
+    snap.forEach(doc => { 
+      const d = doc.data(); 
+      html += `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <strong>${escapeHtml(d.nama||'')}</strong>
+            <div class="muted small">${escapeHtml(d.phone||'')}</div>
+          </div>
+          <div>
+            <button class="btn btn-sm btn-success" onclick="approveUser('${doc.id}')">Setujui</button>
+          </div>
+        </div>`; 
+    });
     container.innerHTML = html;
   }catch(e){ console.error(e); }
 }
 
 /* ================== UTILS ================== */
-function generateCode(len=6){ return Math.random().toString(36).substring(2,2+len).toUpperCase(); }
+function generateCode(len=6){ 
+  return Math.random().toString(36).substring(2,2+len).toUpperCase(); 
+}
 
 /* ================== INITIAL LOAD ================== */
 (async function init(){
   try{
     loadRegionDropdowns();
-    loadDusunDropdown();
     initMainMap();
     loadKejadianOptions();
-    // seed dummy dusun if none
     const dSnap = await db.collection('Dusun').limit(1).get();
     if(dSnap.empty){
       const kode = 'DUSUN' + generateCode(3);
-      await db.collection('Dusun').add({ nama:'Dusun Demo', kode, desa:'Desaku', kepalaNama:'Budi Demo', kepalaHp:'081200000', kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(Date.now()+3600*1000), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      await db.collection('Dusun').add({ 
+        nama:'Dusun Demo', 
+        kode, 
+        desa:'Desaku', 
+        kepalaNama:'Budi Demo', 
+        kepalaHp:'081200000', 
+        kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(Date.now()+3600*1000), 
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+      });
     }
   }catch(e){ console.warn(e); }
 })();
