@@ -518,27 +518,62 @@ function showDashboard(){ hide('authCard'); show('dashboardCard'); }
   showLoginForm(); // default tampilan login
 }
 
-function showLoginForm(){
-  document.getElementById("loginCard").style.display = "block";
-  document.getElementById("registerCard").style.display = "none";
-}
-function showRegisterForm(){
-  document.getElementById("loginCard").style.display = "none";
-  document.getElementById("registerCard").style.display = "block";
-}
+ const auth = firebase.auth();
+  const db = firebase.firestore();
 
-document.addEventListener("DOMContentLoaded", () => {
-  const showRegister = document.getElementById("showRegister");
-  const showLogin = document.getElementById("showLogin");
-  if(showRegister) showRegister.addEventListener("click", (e) => {
-    e.preventDefault(); 
-    showRegisterForm();
+  function show(id){ document.getElementById(id).style.display = 'block'; }
+  function hide(id){ document.getElementById(id).style.display = 'none'; }
+
+  function showAuth(){ 
+    show('authCard'); 
+    hide('dashboardCard'); 
+    showLoginForm(); // default tampil login
+  }
+  function showDashboard(){ 
+    hide('authCard'); 
+    show('dashboardCard'); 
+  }
+
+  function onLogin(){
+    const hp = document.getElementById('login_hp').value;
+    const pass = document.getElementById('login_pass').value;
+    // proses login...
+  }
+
+  function onRegister(){
+    const nama = document.getElementById('reg_nama').value;
+    const hp = document.getElementById('reg_hp').value;
+    const pass = document.getElementById('reg_password').value;
+    // proses register...
+  }
+
+  // ✅ fungsi tambahan biar input hp hanya angka
+  function formatPhoneTyping(el){
+    el.value = el.value.replace(/[^0-9]/g, '');
+  }
+
+  // ✅ fungsi toggle login/register
+  function showLoginForm(){
+    document.getElementById("loginCard").style.display = "block";
+    document.getElementById("registerCard").style.display = "none";
+  }
+  function showRegisterForm(){
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("registerCard").style.display = "block";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const showRegister = document.getElementById("showRegister");
+    const showLogin = document.getElementById("showLogin");
+    if(showRegister) showRegister.addEventListener("click", (e) => {
+      e.preventDefault();
+      showRegisterForm();
+    });
+    if(showLogin) showLogin.addEventListener("click", (e) => {
+      e.preventDefault();
+      showLoginForm();
+    });
   });
-  if(showLogin) showLogin.addEventListener("click", (e) => {
-    e.preventDefault();
-    showLoginForm();
-  });
-});
 
 
 
