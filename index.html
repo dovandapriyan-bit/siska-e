@@ -66,7 +66,10 @@
       <div class="d-grid gap-2 mb-2">
         <button class="btn btn-primary" onclick="onLogin()">Login</button>
       </div>
-      <p class="small">Belum punya akun? <a href="#" id="showRegister">Daftar di sini</a></p>
+     <p class="small">Belum punya akun? 
+    <span id="showRegister" style="color:blue;cursor:pointer;">Daftar di sini</span>
+  </p>
+
     </div>
 
     <!-- FORM DAFTAR (disembunyikan awal) -->
@@ -524,13 +527,13 @@ function showRegisterForm(){
   document.getElementById("registerCard").style.display = "block";
 }
 
-// aktifkan link toggle
 document.addEventListener("DOMContentLoaded", () => {
   const showRegister = document.getElementById("showRegister");
   const showLogin = document.getElementById("showLogin");
-  if(showRegister) showRegister.addEventListener("click", e => { e.preventDefault(); showRegisterForm(); });
-  if(showLogin) showLogin.addEventListener("click", e => { e.preventDefault(); showLoginForm(); });
+  if(showRegister) showRegister.addEventListener("click", () => showRegisterForm());
+  if(showLogin) showLogin.addEventListener("click", () => showLoginForm());
 });
+
 
 
 /* ================== LOAD PROFILE & INIT DASHBOARD ================== */
