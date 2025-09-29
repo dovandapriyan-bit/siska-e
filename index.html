@@ -816,12 +816,31 @@ function initPosFormMap(){
     $('chosenPosCoord').innerText = `Terpilih: ${tempChosenPos.lat.toFixed(6)}, ${tempChosenPos.lng.toFixed(6)}`;
   });
 
-  $('pos_photo').addEventListener('change', function(){
-    const f = this.files[0];
-    if(!f) { $('posPhotoPreview').innerHTML=''; return; }
-    const url = URL.createObjectURL(f);
-    $('posPhotoPreview').innerHTML = `<img src="${url}" class="pos-photo">`;
-  });
+ // ✅ ✅ ✅ GANTI TOTAL DENGAN INI ✅ ✅ ✅
+$('pos_photo').addEventListener('change', function(){
+  const f = this.files[0];
+  if(!f) { 
+    $('posPhotoPreview').innerHTML=''; 
+    return; 
+  }
+  
+  // Validasi ukuran file
+  if(f.size > 10 * 1024 * 1024) {
+    err("Ukuran foto terlalu besar! Maksimal 10MB");
+    this.value = '';
+    return;
+  }
+  
+  // Validasi tipe file
+  if(!f.type.startsWith('image/')) {
+    err("File harus berupa gambar!");
+    this.value = '';
+    return;
+  }
+  
+  const url = URL.createObjectURL(f);
+  $('posPhotoPreview').innerHTML = `<img src="${url}" class="pos-photo">`;
+});
 }
 
 function setPosLocationFromMap(){
@@ -836,6 +855,7 @@ async function savePosFromModal(){
   return savePosNew();
 }
 
+// ✅ ✅ ✅ GANTI TOTAL DENGAN INI ✅ ✅ ✅
 async function savePosNew(){
   if(!currentWarga) return err("Login dulu");
   const name = $('pos_name').value.trim();
@@ -844,31 +864,67 @@ async function savePosNew(){
   const status = $('pos_status').value;
   const jenis = $('pos_jenis').value;
   const fotoFile = $('pos_photo').files[0];
+  
   if(!name || !rt || !rw || !fotoFile) return err("Isi semua field dan upload foto pos (wajib)");
   if(!tempChosenPos.lat || !tempChosenPos.lng) return err("Tentukan lokasi pos pada peta");
 
   try{
-    Swal.fire({ title:'Mengunggah foto...', didOpen: ()=> Swal.showLoading() });
-    const path = `pos_photos/${Date.now()}_${fotoFile.name.replace(/\s+/g,'_')}`;
-    const up = await storage.ref().child(path).put(fotoFile);
-    const url = await up.ref.getDownloadURL();
-    Swal.close();
+    Swal.fire({ 
+      title: 'Mempersiapkan foto...', 
+      didOpen: () => Swal.showLoading(),
+      allowOutsideClick: false
+    });
 
-    const payload = {
-      nama: name, rt, rw, status, jenis, foto: url, fotoPath: path,
-      pembuatId: currentWarga.id, pembuatNama: currentWarga.data.nama,
-      pembuatRt: currentWarga.data.rt || rt, pembuatRw: currentWarga.data.rw || rw,
-      pembuatDusun: currentWarga.data.kodeDusun || null,
-      lat: tempChosenPos.lat, lng: tempChosenPos.lng,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      dusunCode: currentWarga.data.kodeDusun || null
-    };
-    await db.collection('PosDusun').add(payload);
-    toast("Pos tersimpan");
-    closePosForm();
-    loadPosList();
-    loadMarkers();
-  }catch(e){ console.error(e); Swal.close(); err("Gagal simpan pos"); }
+    // Kompresi foto
+    const compressedFile = await compressImage(fotoFile);
+    
+    Swal.fire({ 
+      title: 'Mengunggah foto...', 
+      html: 'Progress: 0%',
+      showConfirmButton: false,
+      allowOutsideClick: false
+    });
+
+    const path = `pos_photos/${Date.now()}_${compressedFile.name.replace(/\s+/g,'_')}`;
+    const uploadTask = storage.ref().child(path).put(compressedFile);
+    
+    // Progress tracking
+    uploadTask.on('state_changed',
+        (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            Swal.update({
+                html: `Progress: ${Math.round(progress)}%`
+            });
+        },
+        (error) => {
+            Swal.close();
+            err("Gagal upload foto: " + error.message);
+        },
+        async () => {
+            const url = await uploadTask.snapshot.ref.getDownloadURL();
+            Swal.close();
+            
+            const payload = {
+                nama: name, rt, rw, status, jenis, foto: url, fotoPath: path,
+                pembuatId: currentWarga.id, pembuatNama: currentWarga.data.nama,
+                lat: tempChosenPos.lat, lng: tempChosenPos.lng,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                dusunCode: currentWarga.data.kodeDusun || null
+            };
+            
+            await db.collection('PosDusun').add(payload);
+            toast("Pos tersimpan!");
+            closePosForm();
+            loadPosList();
+            loadMarkers();
+        }
+    );
+    
+  }catch(e){ 
+    console.error(e); 
+    Swal.close(); 
+    err("Gagal simpan pos"); 
+  }
 }
 
 async function updatePos(id){
