@@ -315,6 +315,24 @@ function normalizePhoneForKey(v){ let s=(v||"").replace(/\D/g,""); if(s.startsWi
 function padRT(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0'); el.value=v; }
 function padRW(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0'); el.value=v; }
 function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// ✅ ✅ ✅ SISIPKAN INI ✅ ✅ ✅
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
   // ✅ ✅ ✅ SISIPKAN FUNGSI BARU INI DI SINI ✅ ✅ ✅
 function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.7) {
     return new Promise((resolve, reject) => {
@@ -855,7 +873,6 @@ async function savePosFromModal(){
   return savePosNew();
 }
 
-// ✅ ✅ ✅ GANTI TOTAL DENGAN INI ✅ ✅ ✅
 async function savePosNew(){
   if(!currentWarga) return err("Login dulu");
   const name = $('pos_name').value.trim();
@@ -870,55 +887,35 @@ async function savePosNew(){
 
   try{
     Swal.fire({ 
-      title: 'Mempersiapkan foto...', 
+      title: 'Mengompresi foto...', 
       didOpen: () => Swal.showLoading(),
       allowOutsideClick: false
     });
 
-    // Kompresi foto
-    const compressedFile = await compressImage(fotoFile);
+    // Kompresi foto dan konversi ke Base64
+    const compressedFile = await compressImage(fotoFile, 400, 300, 0.6);
+    const base64String = await fileToBase64(compressedFile);
     
-    Swal.fire({ 
-      title: 'Mengunggah foto...', 
-      html: 'Progress: 0%',
-      showConfirmButton: false,
-      allowOutsideClick: false
-    });
+    Swal.close();
 
-    const path = `pos_photos/${Date.now()}_${compressedFile.name.replace(/\s+/g,'_')}`;
-    const uploadTask = storage.ref().child(path).put(compressedFile);
+    // Simpan Base64 langsung ke Firestore
+    const payload = {
+      nama: name, rt, rw, status, jenis, 
+      fotoBase64: base64String,
+      fotoName: fotoFile.name,
+      pembuatId: currentWarga.id, 
+      pembuatNama: currentWarga.data.nama,
+      lat: tempChosenPos.lat, 
+      lng: tempChosenPos.lng,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      dusunCode: currentWarga.data.kodeDusun || null
+    };
     
-    // Progress tracking
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            Swal.update({
-                html: `Progress: ${Math.round(progress)}%`
-            });
-        },
-        (error) => {
-            Swal.close();
-            err("Gagal upload foto: " + error.message);
-        },
-        async () => {
-            const url = await uploadTask.snapshot.ref.getDownloadURL();
-            Swal.close();
-            
-            const payload = {
-                nama: name, rt, rw, status, jenis, foto: url, fotoPath: path,
-                pembuatId: currentWarga.id, pembuatNama: currentWarga.data.nama,
-                lat: tempChosenPos.lat, lng: tempChosenPos.lng,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                dusunCode: currentWarga.data.kodeDusun || null
-            };
-            
-            await db.collection('PosDusun').add(payload);
-            toast("Pos tersimpan!");
-            closePosForm();
-            loadPosList();
-            loadMarkers();
-        }
-    );
+    await db.collection('PosDusun').add(payload);
+    toast("Pos tersimpan!");
+    closePosForm();
+    loadPosList();
+    loadMarkers();
     
   }catch(e){ 
     console.error(e); 
@@ -926,7 +923,6 @@ async function savePosNew(){
     err("Gagal simpan pos"); 
   }
 }
-
 async function updatePos(id){
   if(!currentWarga) return err("Login dulu");
   try{
@@ -994,14 +990,14 @@ async function loadPosList(){
         html += ` <button class="btn btn-sm btn-primary" onclick="editPos('${id}')">Edit</button> 
                   <button class="btn btn-sm btn-danger" onclick="deletePos('${id}')">Hapus</button>`;
       html += `</div></div>`;
-      if(d.foto) html += `<div class="mt-2"><img src="${d.foto}" class="pos-photo"></div>`;
+      if(d.fotoBase64) html += `<div class="mt-2"><img src="${d.fotoBase64}" class="pos-photo"></div>`;
       html += `<div class="muted small mt-2">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div></div>`;
     });
     $('posList').innerHTML = html;
   }catch(e){ console.error(e); $('posList').innerHTML = '<div class="muted">Gagal muat pos</div>'; }
 }
 
-/* ================== VIEW / EDIT / DELETE POS ================== */
+/* ================== VIEW / EDIT / DELETE / UPDATE POS ================== */
 async function viewPos(id){
   try{
     const doc = await db.collection('PosDusun').doc(id).get();
@@ -1013,7 +1009,8 @@ async function viewPos(id){
       <div class="muted small">Jenis: ${escapeHtml(d.jenis||'')}</div>
       <div class="muted small">Status: ${(d.status||'').toUpperCase()}</div>
       <div class="muted small">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div>
-      ${d.foto?`<div class="mt-2"><img src="${d.foto}" style="max-width:360px;border-radius:8px;"></div>`:''}`;
+      ${d.fotoBase64 ? `<div class="mt-2"><img src="${d.fotoBase64}" style="max-width:360px;border-radius:8px;"></div>` : ''}`;
+    
     $('posViewContent').innerHTML = html;
     show('posViewModal');
     setTimeout(()=>{ initPosViewMap(d.lat,d.lng); }, 200);
@@ -1047,7 +1044,9 @@ async function editPos(id){
     $('pos_rw').value = d.rw || '';
     $('pos_status').value = d.status || 'active';
     $('pos_jenis').value = d.jenis || 'pos_dusun';
-    $('posPhotoPreview').innerHTML = d.foto ? `<img src="${d.foto}" class="pos-photo">` : '';
+    $('posPhotoPreview').innerHTML = d.fotoBase64 ? 
+  `<img src="${d.fotoBase64}" class="pos-photo">` : 
+  '<div class="muted small">Foto sebelumnya tersimpan</div>';
     tempChosenPos.lat = d.lat || null; tempChosenPos.lng = d.lng || null;
     $('chosenPosCoord').innerText = tempChosenPos.lat ? 
       `Terpilih: ${tempChosenPos.lat.toFixed(6)}, ${tempChosenPos.lng.toFixed(6)}` : 
@@ -1088,6 +1087,44 @@ async function deletePos(id){
       loadPosList(); loadMarkers();
     } else err("Pos tidak ditemukan");
   }catch(e){ console.error(e); err("Gagal hapus pos"); }
+}
+  async function updatePos(id){
+  if(!currentWarga) return err("Login dulu");
+  try{
+    const docRef = db.collection('PosDusun').doc(id);
+    const docSnap = await docRef.get();
+    if(!docSnap.exists) return err("Pos tidak ditemukan");
+    const d = docSnap.data();
+    const name = $('pos_name').value.trim();
+    const rt = $('pos_rt').value.trim();
+    const rw = $('pos_rw').value.trim();
+    const status = $('pos_status').value;
+    const jenis = $('pos_jenis').value;
+    const fotoFile = $('pos_photo').files[0];
+    
+    let fotoBase64 = d.fotoBase64;
+    
+    if(fotoFile){
+      // Kompresi dan konversi ke Base64 untuk foto baru
+      const compressedFile = await compressImage(fotoFile, 400, 300, 0.6);
+      fotoBase64 = await fileToBase64(compressedFile);
+    }
+    
+    await docRef.update({
+      nama: name, rt, rw, status, jenis, 
+      fotoBase64: fotoBase64,
+      fotoName: fotoFile ? fotoFile.name : d.fotoName,
+      lat: tempChosenPos.lat || d.lat || null, 
+      lng: tempChosenPos.lng || d.lng || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    toast("Pos diperbarui");
+    delete $('posModal').dataset.editingId;
+    closePosForm(); 
+    loadPosList(); 
+    loadMarkers();
+  }catch(e){ console.error(e); err("Gagal update pos"); }
 }
 
 /* ================== KEJADIAN OPTIONS ================== */
