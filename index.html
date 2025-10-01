@@ -136,8 +136,8 @@
       <div class="col-lg-4">
         <!-- Kepala Dusun Info -->
         <div class="card p-3 mb-3">
-          <h6>Informasi Kepala Dusun</h6>
-          <div id="kepalaInfo" class="muted">Memuat...</div>
+          <h6>Informasi Dusun</h6>
+          <div id="dusunInfo" class="muted">Memuat...</div>
         </div>
 
         <!-- SOS card (jenis kejadian + lokasi + sos button) -->
@@ -454,12 +454,21 @@ function autofillAlamat(){
   const rt = $('reg_rt').value || '';
   const rw = $('reg_rw').value || '';
   const parts = [];
-  if(blok || no) parts.push((blok?('Blok '+blok):'') + (no?(' - '+no):''));
-  if(rt||rw) parts.push('RT '+(rt||'-')+' / RW '+(rw||'-'));
-  if(des) parts.push('Desa '+des);
-  if(kec) parts.push('Kec. '+kec);
-  if(kab) parts.push('Kab/Kota '+kab);
-  if(prov) parts.push(prov);
+  
+  // Format: Blok A - No. 15, RT 001 / RW 002, Desa ABC, Kec. XYZ, Kab/Kota DEF, Prov GHI
+  if(blok || no) {
+    let blokNo = '';
+    if(blok) blokNo += 'Blok ' + blok;
+    if(no) blokNo += (blok ? ' - ' : '') + 'No. ' + no;
+    parts.push(blokNo);
+  }
+  
+  if(rt || rw) parts.push('RT ' + (rt || '000') + ' / RW ' + (rw || '000'));
+  if(des) parts.push('Desa ' + des);
+  if(kec) parts.push('Kec. ' + kec);
+  if(kab) parts.push(kab.includes('Kota') ? kab : 'Kab. ' + kab);
+  if(prov) parts.push('Prov. ' + prov);
+  
   $('reg_alamat').value = parts.join(', ');
 }
 
@@ -635,11 +644,17 @@ async function createDusun(){
     const kode = generateCode(6);
     const expiresMs = Date.now() + (60 * 60 * 1000);
     const payload = {
-      nama, kode,
+      nama, 
+      kode,
       kepalaId: currentWarga.id,
       kepalaNama: currentWarga.data.nama,
       kepalaHp: currentWarga.data.phone || '',
-      kepalaAlamat: (currentWarga.data.blok||'') + (currentWarga.data.no?(' '+currentWarga.data.no):''),
+      // SIMPAN DATA ALAMAT LENGKAP KEPALA DUSUN
+      kepalaBlok: currentWarga.data.blok || '',
+      kepalaNo: currentWarga.data.no || '',
+      kepalaRt: currentWarga.data.rt || '',
+      kepalaRw: currentWarga.data.rw || '',
+      kepalaAlamat: currentWarga.data.alamat || '',
       kodeExpiresAt: firebase.firestore.Timestamp.fromMillis(expiresMs),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -686,40 +701,60 @@ async function loadDusunByCode(kode){
   try{
     const snap = await db.collection('Dusun').where('kode','==',kode).limit(1).get();
     if(snap.empty){ 
-      $('kepalaInfo').innerHTML = '<div class="muted">Dusun tidak ditemukan.</div>'; 
+      $('dusunInfo').innerHTML = '<div class="muted">Dusun tidak ditemukan.</div>'; 
       return; 
     }
     const doc = snap.docs[0]; 
     currentDusun = { id: doc.id, data: doc.data() };
     const d = currentDusun.data;
-    const kepalaAlamat = d.kepalaAlamat || (currentWarga.data.alamat || '-');
-    $('kepalaInfo').innerHTML = `
-      <div><strong>${escapeHtml(d.kepalaNama||'-')}</strong></div>
-      <div class="muted small">HP: ${escapeHtml(d.kepalaHp||'-')}</div>
-      <div class="muted small">Alamat Kepala: ${escapeHtml(kepalaAlamat||'-')}</div>`;
     
+    // Format alamat lengkap kepala dusun
+    let alamatKepala = '';
+    if(d.kepalaAlamat) {
+      alamatKepala = d.kepalaAlamat;
+    } else if(d.kepalaBlok || d.kepalaNo) {
+      alamatKepala = `${d.kepalaBlok ? 'Blok ' + d.kepalaBlok : ''}${d.kepalaNo ? (d.kepalaBlok ? ' - ' : '') + 'No. ' + d.kepalaNo : ''}`;
+    }
+    
+    // Tampilkan informasi dusun lengkap
+    $('dusunInfo').innerHTML = `
+      <div class="mb-2">
+        <strong>Nama Dusun:</strong><br>
+        <span class="text-primary">${escapeHtml(d.nama||'-')}</span>
+      </div>
+      <div class="mb-2">
+        <strong>Kepala Dusun:</strong><br>
+        ${escapeHtml(d.kepalaNama||'-')}
+      </div>
+      <div class="mb-2">
+        <strong>HP Kepala Dusun:</strong><br>
+        ${escapeHtml(d.kepalaHp||'-')}
+      </div>
+      <div class="mb-2">
+        <strong>Alamat Kepala Dusun:</strong><br>
+        ${escapeHtml(alamatKepala||'-')}
+        ${d.kepalaRt || d.kepalaRw ? `<br>RT ${d.kepalaRt||'-'} / RW ${d.kepalaRw||'-'}` : ''}
+      </div>
+    `;
+    
+    // Show kode only if current user is kepala that created it
     if(currentWarga && currentWarga.id === d.kepalaId){
       $('myDusunCode').innerText = 'Kode dusun: ' + (d.kode||'');
       $('myDusunCode').classList.remove('hidden');
       show('createDusunCard');
-      show('regenKodeBtn'); 
-      show('expireKodeBtn');
+      show('regenKodeBtn'); show('expireKodeBtn');
       
       const expiresTs = d.kodeExpiresAt && d.kodeExpiresAt.toMillis ? d.kodeExpiresAt.toMillis() : null;
       if(expiresTs){
         startKodeCountdown(expiresTs);
       } else {
         $('kodeCountdown').innerText = '';
-        if(kodeCountdownTimer){ 
-          clearInterval(kodeCountdownTimer); 
-          kodeCountdownTimer = null; 
-        }
+        if(kodeCountdownTimer){ clearInterval(kodeCountdownTimer); kodeCountdownTimer = null; }
       }
     } else {
       $('myDusunCode').innerText = '';
       $('kodeCountdown').innerText = '';
-      hide('regenKodeBtn'); 
-      hide('expireKodeBtn');
+      hide('regenKodeBtn'); hide('expireKodeBtn');
     }
     hide('joinDusunCard');
   }catch(e){ console.error(e); }
