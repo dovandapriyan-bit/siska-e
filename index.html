@@ -481,6 +481,7 @@ function autofillAlamat(){
 }
 
 /* ================== REGISTER ================== */
+/* ================== REGISTER ================== */
 async function onRegister(){
   const nama = $('reg_nama').value.trim();
   const hp = $('reg_hp').value.trim();
@@ -508,18 +509,27 @@ async function onRegister(){
     const uc = await auth.createUserWithEmailAndPassword(email, password);
     const uid = uc.user.uid;
 
-    // ✅ status ditentukan dulu
-    const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
-    const status = kepalaRoles.includes(role) ? 'aktif' : 'pending';
-
-    // ✅ referral untuk kepala keluarga
+    // GENERATE KODE REFERRAL UNTUK KEPALA KELUARGA
     const kodeReferral = (role === 'kepala_keluarga') ? generateCode(6) : null;
+    
+    const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
+    const status = kepalaRoles.includes(role) ? 'pending' : 'pending_referral';
 
-    // ✅ simpan data sekali saja
+    // SIMPAN DATA KE FIRESTORE
     await db.collection('Warga').doc(uid).set({
-      nama, phone: norm, role, status,
-      provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des,
-      alamat, blok, no, rt, rw,
+      nama, 
+      phone: norm, 
+      role, 
+      status,
+      provinsi: prov, 
+      kabupaten: kab, 
+      kecamatan: kec, 
+      desa: des,
+      alamat, 
+      blok, 
+      no, 
+      rt, 
+      rw, 
       kodeReferral: kodeReferral,
       kodeDusun: null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -527,11 +537,13 @@ async function onRegister(){
 
     $('reg_password').value = '';
     await auth.signOut();
+    
     Swal.fire({
       icon: 'success',
       title: 'Pendaftaran Berhasil',
       text: 'Silakan login menggunakan panel login.'
     });
+    
     clearRegister();
     showLoginForm();
 
