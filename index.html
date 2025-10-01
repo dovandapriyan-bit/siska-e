@@ -508,25 +508,20 @@ async function onRegister(){
     const uc = await auth.createUserWithEmailAndPassword(email, password);
     const uid = uc.user.uid;
 
-    // ✅ GENERATE KODE REFERRAL UNTUK KEPALA KELUARGA
-    const kodeReferral = (role === 'kepala_keluarga') ? generateCode(6) : null;
-    
-    await db.collection('Warga').doc(uid).set({
-      nama, phone: norm, role, status,
-      provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des,
-      alamat, blok, no, rt, rw, 
-      kodeReferral: kodeReferral, // ✅ SIMPAN KODE REFERRAL
-      kodeDusun: null,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
+    // ✅ status ditentukan dulu
     const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
     const status = kepalaRoles.includes(role) ? 'aktif' : 'pending';
 
+    // ✅ referral untuk kepala keluarga
+    const kodeReferral = (role === 'kepala_keluarga') ? generateCode(6) : null;
+
+    // ✅ simpan data sekali saja
     await db.collection('Warga').doc(uid).set({
       nama, phone: norm, role, status,
       provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des,
-      alamat, blok, no, rt, rw, kodeDusun: null,
+      alamat, blok, no, rt, rw,
+      kodeReferral: kodeReferral,
+      kodeDusun: null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -549,6 +544,7 @@ async function onRegister(){
     });
   }
 }
+
 
 function clearRegister(){
   ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'].forEach(id=>{ 
