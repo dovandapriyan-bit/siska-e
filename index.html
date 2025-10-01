@@ -1011,47 +1011,115 @@ async function loadPosList(){
     });
     let html = '';
     arr.forEach(item=>{
-      const d = item.data; const id = item.id;
+      const d = item.data; 
+      const id = item.id;
+      
+      // Format status dan jenis
+      const statusText = d.status === 'active' ? 'AKTIF' : 'PASIF';
+      const statusClass = d.status === 'active' ? 'status-aman' : 'status-rawan';
+      const jenisText = d.jenis === 'pos_dusun' ? 'Pos Dusun' : 'Pos RT';
+      
       html += `
-        <div class="p-2 border rounded mb-2">
-          <div class="d-flex justify-content-between">
-            <div>
-              <strong>${escapeHtml(d.nama)}</strong>
-              <div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div>
+        <div class="p-3 border rounded mb-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-primary">${escapeHtml(d.nama)}</h6>
+              <div class="small text-muted mb-1">
+                <span class="me-3">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</span>
+                <span class="me-3">Jenis: ${jenisText}</span>
+                <span class="${statusClass}">Status: ${statusText}</span>
+              </div>
+              <div class="small text-muted">
+                Pembuat: ${escapeHtml(d.pembuatNama||'-')}
+              </div>
             </div>
-            <div>
-              <button class="btn btn-sm btn-link" onclick="viewPos('${id}')">View</button>`;
+            <div class="ms-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="viewPos('${id}')">Detail</button>`;
+      
       if(currentWarga.data.role === 'kepala_dusun') 
-        html += ` <button class="btn btn-sm btn-primary" onclick="editPos('${id}')">Edit</button> 
-                  <button class="btn btn-sm btn-danger" onclick="deletePos('${id}')">Hapus</button>`;
+        html += ` 
+          <button class="btn btn-sm btn-outline-warning" onclick="editPos('${id}')">Edit</button> 
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePos('${id}')">Hapus</button>`;
+      
       html += `</div></div>`;
-      if(d.fotoBase64) html += `<div class="mt-2"><img src="${d.fotoBase64}" class="pos-photo"></div>`;
-      html += `<div class="muted small mt-2">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div></div>`;
+      
+      // Tampilkan foto thumbnail jika ada
+      if(d.fotoBase64) {
+        html += `
+          <div class="mt-2">
+            <img src="${d.fotoBase64}" style="max-width:200px; max-height:120px; border-radius:6px; border:1px solid #eee;" 
+                 onclick="viewPos('${id}')" style="cursor:pointer" title="Klik untuk lihat detail">
+          </div>`;
+      }
+      
+      html += `</div>`;
     });
     $('posList').innerHTML = html;
   }catch(e){ console.error(e); $('posList').innerHTML = '<div class="muted">Gagal muat pos</div>'; }
 }
-
 /* ================== VIEW / EDIT / DELETE / UPDATE POS ================== */
 async function viewPos(id){
   try{
     const doc = await db.collection('PosDusun').doc(id).get();
     if(!doc.exists) return err("Pos tidak ditemukan");
     const d = doc.data();
+    
+    // Format status dan jenis untuk tampilan lebih baik
+    const statusText = d.status === 'active' ? 'AKTIF' : 'PASIF';
+    const statusClass = d.status === 'active' ? 'status-aman' : 'status-rawan';
+    const jenisText = d.jenis === 'pos_dusun' ? 'Pos Dusun' : 'Pos RT';
+    
     const html = `
-      <div><strong>${escapeHtml(d.nama||'-')}</strong></div>
-      <div class="muted small">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</div>
-      <div class="muted small">Jenis: ${escapeHtml(d.jenis||'')}</div>
-      <div class="muted small">Status: ${(d.status||'').toUpperCase()}</div>
-      <div class="muted small">Pembuat: ${escapeHtml(d.pembuatNama||'-')}</div>
-      ${d.fotoBase64 ? `<div class="mt-2"><img src="${d.fotoBase64}" style="max-width:360px;border-radius:8px;"></div>` : ''}`;
+      <div class="mb-3">
+        <h6 class="text-primary">${escapeHtml(d.nama||'-')}</h6>
+      </div>
+      
+      <div class="row mb-2">
+        <div class="col-6">
+          <strong>RT/RW:</strong><br>
+          ${escapeHtml(d.rt||'-')} / ${escapeHtml(d.rw||'-')}
+        </div>
+        <div class="col-6">
+          <strong>Jenis Pos:</strong><br>
+          ${jenisText}
+        </div>
+      </div>
+      
+      <div class="row mb-2">
+        <div class="col-6">
+          <strong>Status:</strong><br>
+          <span class="${statusClass}">${statusText}</span>
+        </div>
+        <div class="col-6">
+          <strong>Pembuat:</strong><br>
+          ${escapeHtml(d.pembuatNama||'-')}
+        </div>
+      </div>
+      
+      <div class="mb-2">
+        <strong>Koordinat:</strong><br>
+        ${d.lat ? `${d.lat.toFixed(6)}, ${d.lng.toFixed(6)}` : 'Tidak tersedia'}
+      </div>
+      
+      ${d.fotoBase64 ? `
+        <div class="mt-3">
+          <strong>Foto Pos:</strong>
+          <div class="mt-2">
+            <img src="${d.fotoBase64}" style="max-width:100%; max-height:300px; border-radius:8px; border:1px solid #ddd;">
+          </div>
+        </div>
+      ` : ''}
+      
+      <div class="mt-3 small muted">
+        <div>Dibuat: ${d.createdAt ? new Date(d.createdAt.seconds*1000).toLocaleString() : '-'}</div>
+        ${d.updatedAt ? `<div>Diupdate: ${new Date(d.updatedAt.seconds*1000).toLocaleString()}</div>` : ''}
+      </div>`;
     
     $('posViewContent').innerHTML = html;
     show('posViewModal');
     setTimeout(()=>{ initPosViewMap(d.lat,d.lng); }, 200);
   }catch(e){ console.error(e); err("Gagal tampilkan pos"); }
 }
-
 function closePosView(){ 
   hide('posViewModal'); 
   if(posViewMap){ 
