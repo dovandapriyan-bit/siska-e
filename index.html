@@ -648,6 +648,9 @@ async function loadProfileAndShow(){
 /* ================== CREATE DUSUN ================== */
 async function createDusun(){
   if(!currentWarga) return err("Login dulu");
+  if(currentWarga.data.role !== 'kepala_dusun') {
+    return err("Hanya Kepala Dusun yang boleh membuat dusun");
+  }
   const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
   if(!kepalaRoles.includes(currentWarga.data.role)) return err("Hanya subrole kepala boleh membuat dusun");
   const nama = $('dusun_nama').value.trim();
