@@ -597,39 +597,40 @@ function clearRegister(){
   if($('reg_des')) $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
 }
 
-/* ================== LOGIN ================== */
 async function onLogin(){
   const hp = $('login_hp').value.trim();
-  const password = $('login_password').value;
-
-  try {
+  const pass = $('login_pass').value;
+  
+  if(!hp || !pass) return err("Nomor HP & password wajib");
+  
+  try{
     const norm = normalizePhoneForKey(hp);
     const email = norm + "@dusun.fake";
-
-    const uc = await auth.signInWithEmailAndPassword(email, password);
-    const uid = uc.user.uid;
-
-    const userDoc = await db.collection('Warga').doc(uid).get();
-    if(!userDoc.exists){
-      return err("Data user tidak ditemukan");
+    
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    
+    currentUser = cred.user;
+    $('login_pass').value = '';
+    
+    await loadProfileAndShow();
+    toast("Login berhasil");
+    
+  }catch(e){ 
+    console.error('Login Error:', e);
+    
+    let errorMessage = 'Login gagal';
+    if(e.code === 'auth/user-not-found') {
+      errorMessage = 'Nomor HP belum terdaftar';
+    } else if(e.code === 'auth/wrong-password') {
+      errorMessage = 'Password salah';
+    } else if(e.code === 'auth/invalid-email') {
+      errorMessage = 'Format nomor HP tidak valid';
+    } else {
+      errorMessage = e.message || errorMessage;
     }
-
-    const user = userDoc.data();
-    // di sini jangan pernah pakai `status` yang belum ada
-    if(user.status !== 'aktif'){
-      return err("Akun belum aktif, hubungi admin");
-    }
-
-    // lanjut ke dashboard
-    showDashboard(user);
-
-  } catch(e){
-    console.error(e);
-    Swal.fire({
-      icon: 'error',
-      title: 'Login Gagal',
-      text: e.message || 'Terjadi kesalahan saat login'
-    });
+    
+    err(errorMessage);
   }
 }
 
