@@ -560,19 +560,39 @@ function clearRegister(){
 /* ================== LOGIN ================== */
 async function onLogin(){
   const hp = $('login_hp').value.trim();
-  const pass = $('login_pass').value;
-  if(!hp || !pass) return err("Nomor HP & password wajib");
-  try{
+  const password = $('login_password').value;
+
+  try {
     const norm = normalizePhoneForKey(hp);
     const email = norm + "@dusun.fake";
-    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    const cred = await auth.signInWithEmailAndPassword(email, pass);
-    currentUser = cred.user;
-    $('login_pass').value = '';
-    await loadProfileAndShow();
-    toast("Login berhasil");
-  }catch(e){ console.error(e); err(e.message || String(e)); }
+
+    const uc = await auth.signInWithEmailAndPassword(email, password);
+    const uid = uc.user.uid;
+
+    const userDoc = await db.collection('Warga').doc(uid).get();
+    if(!userDoc.exists){
+      return err("Data user tidak ditemukan");
+    }
+
+    const user = userDoc.data();
+    // di sini jangan pernah pakai `status` yang belum ada
+    if(user.status !== 'aktif'){
+      return err("Akun belum aktif, hubungi admin");
+    }
+
+    // lanjut ke dashboard
+    showDashboard(user);
+
+  } catch(e){
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Login Gagal',
+      text: e.message || 'Terjadi kesalahan saat login'
+    });
+  }
 }
+
 
 /* ================== AUTH STATE LISTENER ================== */
 auth.onAuthStateChanged(async u=>{
