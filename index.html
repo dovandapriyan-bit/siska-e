@@ -481,16 +481,19 @@ function autofillAlamat(){
 }
 
 /* ================== REGISTER ================== */
-/* ================== REGISTER ================== */
 async function onRegister(){
   const nama = $('reg_nama').value.trim();
   const hp = $('reg_hp').value.trim();
   const password = $('reg_password').value;
   const role = $('reg_status').value || 'warga';
-  const prov = $('reg_prov').selectedOptions[0]?.text || '';
-  const kab = $('reg_kab').selectedOptions[0]?.text || '';
-  const kec = $('reg_kec').selectedOptions[0]?.text || '';
-  const des = $('reg_des').selectedOptions[0]?.text || '';
+  const prov = $('reg_prov').value;
+  const kab = $('reg_kab').value;
+  const kec = $('reg_kec').value;
+  const des = $('reg_des').value;
+  const provText = $('reg_prov').selectedOptions[0]?.text || '';
+  const kabText = $('reg_kab').selectedOptions[0]?.text || '';
+  const kecText = $('reg_kec').selectedOptions[0]?.text || '';
+  const desText = $('reg_des').selectedOptions[0]?.text || '';
   const alamat = $('reg_alamat').value.trim();
   const blok = $('reg_blok').value.trim();
   const no = $('reg_no').value.trim();
@@ -502,6 +505,8 @@ async function onRegister(){
 
   try{
     const norm = normalizePhoneForKey(hp);
+    
+    // Cek duplikasi nomor HP
     const dup = await db.collection('Warga').where('phone','==',norm).limit(1).get();
     if(!dup.empty) return err("Nomor HP sudah terdaftar");
 
@@ -509,55 +514,103 @@ async function onRegister(){
     const uc = await auth.createUserWithEmailAndPassword(email, password);
     const uid = uc.user.uid;
 
-    // GENERATE KODE REFERRAL UNTUK KEPALA KELUARGA
+    // Generate kode referral hanya untuk kepala keluarga
     const kodeReferral = (role === 'kepala_keluarga') ? generateCode(6) : null;
     
+    // Tentukan status berdasarkan role
     const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
     const status = kepalaRoles.includes(role) ? 'pending' : 'pending_referral';
 
-    // SIMPAN DATA KE FIRESTORE
-    await db.collection('Warga').doc(uid).set({
-      nama, 
-      phone: norm, 
-      role, 
-      status,
-      provinsi: prov, 
-      kabupaten: kab, 
-      kecamatan: kec, 
-      desa: des,
-      alamat, 
-      blok, 
-      no, 
-      rt, 
-      rw, 
+    // Data untuk disimpan
+    const userData = {
+      nama: nama.toUpperCase(),
+      phone: norm,
+      role: role,
+      status: status,
+      provinsi: provText,
+      kabupaten: kabText,
+      kecamatan: kecText,
+      desa: desText,
+      alamat: alamat.toUpperCase(),
+      blok: blok.toUpperCase(),
+      no: no.toUpperCase(),
+      rt: rt,
+      rw: rw,
       kodeReferral: kodeReferral,
       kodeDusun: null,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
+    // Simpan ke Firestore
+    await db.collection('Warga').doc(uid).set(userData);
+
+    // Reset form dan logout
     $('reg_password').value = '';
     await auth.signOut();
     
-    Swal.fire({
+    // Tampilkan sukses
+    await Swal.fire({
       icon: 'success',
       title: 'Pendaftaran Berhasil',
-      text: 'Silakan login menggunakan panel login.'
+      text: 'Silakan login menggunakan nomor HP dan password Anda'
     });
     
+    // Kembali ke login
     clearRegister();
     showLoginForm();
 
   } catch(e){
-    console.error(e);
+    console.error('Register Error:', e);
+    let errorMessage = 'Terjadi kesalahan saat pendaftaran';
+    
+    if(e.code === 'auth/email-already-in-use'){
+      errorMessage = 'Nomor HP sudah terdaftar';
+    } else if(e.code === 'auth/weak-password'){
+      errorMessage = 'Password terlalu lemah, minimal 6 karakter';
+    } else if(e.code === 'auth/invalid-email'){
+      errorMessage = 'Format nomor HP tidak valid';
+    } else {
+      errorMessage = e.message || errorMessage;
+    }
+    
     Swal.fire({
       icon: 'error',
       title: 'Gagal Mendaftar',
-      text: e.message || 'Terjadi kesalahan saat pendaftaran'
+      text: errorMessage
     });
   }
 }
 
+function clearRegister(){
+  // Reset semua field form
+  const fields = ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'];
+  fields.forEach(id => {
+    if($(id)) $(id).value = '';
+  });
+  
+  // Reset dropdowns
+  if($('reg_status')) $('reg_status').selectedIndex = 0;
+  if($('reg_prov')) $('reg_prov').selectedIndex = 0;
+  if($('reg_kab')) $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
+  if($('reg_kec')) $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
+  if($('reg_des')) $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
+}
 
+function clearRegister(){
+  // Reset semua field form
+  const fields = ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'];
+  fields.forEach(id => {
+    if($(id)) $(id).value = '';
+  });
+  
+  // Reset dropdowns
+  if($('reg_status')) $('reg_status').selectedIndex = 0;
+  if($('reg_prov')) $('reg_prov').selectedIndex = 0;
+  if($('reg_kab')) $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
+  if($('reg_kec')) $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
+  if($('reg_des')) $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
+}
 function clearRegister(){
   ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'].forEach(id=>{ 
     if($(id)) $(id).value=''; 
