@@ -719,7 +719,67 @@ async function expireKodeNow(){
 }
 /* ================== LOAD DUSUN BY CODE & COUNTDOWN ================== */
 async function loadDusunByCode(kode){
-
+   try{
+    const snap = await db.collection('Dusun').where('kode','==',kode).limit(1).get();
+    if(snap.empty){ 
+      $('dusunInfo').innerHTML = '<div class="muted">Dusun tidak ditemukan.</div>'; 
+      return; 
+    }
+    const doc = snap.docs[0]; 
+    currentDusun = { id: doc.id, data: doc.data() };
+    const d = currentDusun.data;
+    
+    // Format alamat lengkap kepala dusun
+    let alamatKepala = '';
+    if(d.kepalaAlamat) {
+      alamatKepala = d.kepalaAlamat;
+    } else if(d.kepalaBlok || d.kepalaNo) {
+      alamatKepala = `${d.kepalaBlok ? 'Blok ' + d.kepalaBlok : ''}${d.kepalaNo ? (d.kepalaBlok ? ' - ' : '') + 'No. ' + d.kepalaNo : ''}`;
+    }
+    
+    // Tampilkan informasi dusun lengkap
+    $('dusunInfo').innerHTML = `
+      <div class="mb-2">
+        <strong>Nama Dusun:</strong><br>
+        <span class="text-primary">${escapeHtml(d.nama||'-')}</span>
+      </div>
+      <div class="mb-2">
+        <strong>Kepala Dusun:</strong><br>
+        ${escapeHtml(d.kepalaNama||'-')}
+      </div>
+      <div class="mb-2">
+        <strong>HP Kepala Dusun:</strong><br>
+        ${escapeHtml(d.kepalaHp||'-')}
+      </div>
+      <div class="mb-2">
+        <strong>Alamat Kepala Dusun:</strong><br>
+        ${escapeHtml(alamatKepala||'-')}
+        ${d.kepalaRt || d.kepalaRw ? `<br>RT ${d.kepalaRt||'-'} / RW ${d.kepalaRw||'-'}` : ''}
+      </div>
+    `;
+    
+    // Show kode only if current user is kepala_dusun that created it
+    if(currentWarga && currentWarga.id === d.kepalaId && currentWarga.data.role === 'kepala_dusun'){
+      $('myDusunCode').innerText = 'Kode dusun: ' + (d.kode||'');
+      $('myDusunCode').classList.remove('hidden');
+      show('createDusunCard');
+      show('regenKodeBtn'); show('expireKodeBtn');
+      
+      const expiresTs = d.kodeExpiresAt && d.kodeExpiresAt.toMillis ? d.kodeExpiresAt.toMillis() : null;
+      if(expiresTs){
+        startKodeCountdown(expiresTs);
+      } else {
+        $('kodeCountdown').innerText = '';
+        if(kodeCountdownTimer){ clearInterval(kodeCountdownTimer); kodeCountdownTimer = null; }
+      }
+    } else {
+      $('myDusunCode').innerText = '';
+      $('kodeCountdown').innerText = '';
+      hide('regenKodeBtn'); hide('expireKodeBtn');
+    }
+    hide('joinDusunCard');
+  }catch(e){ console.error(e); }
+}
 function startKodeCountdown(expiresAtMs){
   if(kodeCountdownTimer) clearInterval(kodeCountdownTimer);
   function update(){
