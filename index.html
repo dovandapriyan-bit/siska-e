@@ -179,6 +179,10 @@
           <h6>Pending Pendaftar</h6>
           <div id="pendingList" class="muted">Memuat...</div>
         </div>
+        <div id="verificationCard" class="card p-3 mb-3 hidden">
+          <h6>Verifikasi Hierarki</h6>
+          <div id="pendingVerifications" class="muted">Memuat...</div>
+        </div>
       </div>
 
       <div class="col-lg-8">
@@ -504,6 +508,18 @@ async function onRegister(){
     const uc = await auth.createUserWithEmailAndPassword(email, password);
     const uid = uc.user.uid;
 
+    // ✅ GENERATE KODE REFERRAL UNTUK KEPALA KELUARGA
+    const kodeReferral = (role === 'kepala_keluarga') ? generateCode(6) : null;
+    
+    await db.collection('Warga').doc(uid).set({
+      nama, phone: norm, role, status,
+      provinsi: prov, kabupaten: kab, kecamatan: kec, desa: des,
+      alamat, blok, no, rt, rw, 
+      kodeReferral: kodeReferral, // ✅ SIMPAN KODE REFERRAL
+      kodeDusun: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
     const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
     const status = kepalaRoles.includes(role) ? 'aktif' : 'pending';
 
@@ -626,6 +642,15 @@ async function loadProfileAndShow(){
     $('expireKodeBtn').classList.add('hidden');
   }
 
+    // TAMPILKAN CARD VERIFIKASI UNTUK ROLE KEPALA
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
+  if(kepalaRoles.includes(currentWarga.data.role) && currentWarga.data.status === 'aktif') {
+    show('verificationCard');
+    loadPendingVerifications(); // ✅ LOAD DATA VERIFIKASI
+  } else {
+    hide('verificationCard');
+  }
+  
   if(currentWarga.data.kodeDusun){
     await loadDusunByCode(currentWarga.data.kodeDusun);
     loadPosList();
@@ -1500,6 +1525,250 @@ async function loadPendingList(){
     });
     container.innerHTML = html;
   }catch(e){ console.error(e); }
+}
+
+/* ================== LOAD PENDING VERIFICATIONS ================== */
+async function loadPendingVerifications(){
+  if(!currentWarga) return;
+  
+  const container = $('pendingVerifications');
+  if(!container) return;
+  
+  let html = '';
+  
+  // ✅ KEPALA DESA: lihat pending Kepala Dusun di desa yang sama
+  if(currentWarga.data.role === 'kepala_desa' && currentWarga.data.status === 'aktif') {
+    const pending = await db.collection('Warga')
+      .where('role', '==', 'kepala_dusun')
+      .where('desa', '==', currentWarga.data.desa)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if(pending.empty) {
+      html = '<div class="muted small">Tidak ada Kepala Dusun pending</div>';
+    } else {
+      pending.forEach(doc => {
+        const d = doc.data();
+        html += `
+          <div class="p-2 border rounded mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${escapeHtml(d.nama)}</strong>
+                <div class="small muted">Kepala Dusun · ${escapeHtml(d.dusun || '-')}</div>
+                <div class="small muted">${escapeHtml(d.alamat || '')}</div>
+              </div>
+              <button class="btn btn-sm btn-success" onclick="verifyHierarchyUser('${doc.id}')">Setujui</button>
+            </div>
+          </div>`;
+      });
+    }
+  }
+  
+  // ✅ KEPALA DUSUN: lihat pending Ketua RW & RT di dusun yang sama
+  else if(currentWarga.data.role === 'kepala_dusun' && currentWarga.data.status === 'aktif') {
+    const pending = await db.collection('Warga')
+      .where('role', '==', 'ketua_rt_rw')
+      .where('desa', '==', currentWarga.data.desa)
+      .where('dusun', '==', currentWarga.data.dusun)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if(pending.empty) {
+      html = '<div class="muted small">Tidak ada Ketua RW/RT pending</div>';
+    } else {
+      pending.forEach(doc => {
+        const d = doc.data();
+        const jenis = d.rt && d.rw ? `Ketua RT ${d.rt} / RW ${d.rw}` : 
+                     d.rw ? `Ketua RW ${d.rw}` : 'Ketua RT/RW';
+        
+        html += `
+          <div class="p-2 border rounded mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${escapeHtml(d.nama)}</strong>
+                <div class="small muted">${jenis} · Dusun ${escapeHtml(d.dusun || '-')}</div>
+                <div class="small muted">${escapeHtml(d.alamat || '')}</div>
+              </div>
+              <button class="btn btn-sm btn-success" onclick="verifyHierarchyUser('${doc.id}')">Setujui</button>
+            </div>
+          </div>`;
+      });
+    }
+  }
+  
+  // ✅ KETUA RW: lihat pending Ketua RT di RW yang sama
+  else if(currentWarga.data.role === 'ketua_rt_rw' && currentWarga.data.status === 'aktif' && currentWarga.data.rw) {
+    const pending = await db.collection('Warga')
+      .where('role', '==', 'ketua_rt_rw')
+      .where('rw', '==', currentWarga.data.rw)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if(pending.empty) {
+      html = '<div class="muted small">Tidak ada Ketua RT pending</div>';
+    } else {
+      pending.forEach(doc => {
+        const d = doc.data();
+        // Filter hanya yang RT berbeda (asumsi Ketua RT)
+        if(d.rt && d.rt !== currentWarga.data.rt) {
+          html += `
+            <div class="p-2 border rounded mb-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>${escapeHtml(d.nama)}</strong>
+                  <div class="small muted">Ketua RT ${escapeHtml(d.rt)} / RW ${escapeHtml(d.rw)}</div>
+                  <div class="small muted">${escapeHtml(d.alamat || '')}</div>
+                </div>
+                <button class="btn btn-sm btn-success" onclick="verifyHierarchyUser('${doc.id}')">Setujui</button>
+              </div>
+            </div>`;
+        }
+      });
+    }
+  }
+  
+  // ✅ KETUA RT: lihat pending Kepala Keluarga di RT yang sama
+  else if(currentWarga.data.role === 'ketua_rt_rw' && currentWarga.data.rt && currentWarga.data.status === 'aktif') {
+    const pending = await db.collection('Warga')
+      .where('role', '==', 'kepala_keluarga')
+      .where('rt', '==', currentWarga.data.rt)
+      .where('rw', '==', currentWarga.data.rw)
+      .where('status', '==', 'pending')
+      .get();
+    
+    if(pending.empty) {
+      html = '<div class="muted small">Tidak ada Kepala Keluarga pending</div>';
+    } else {
+      pending.forEach(doc => {
+        const d = doc.data();
+        html += `
+          <div class="p-2 border rounded mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${escapeHtml(d.nama)}</strong>
+                <div class="small muted">Kepala Keluarga · RT ${escapeHtml(d.rt)} / RW ${escapeHtml(d.rw)}</div>
+                <div class="small muted">${escapeHtml(d.alamat || '')}</div>
+              </div>
+              <button class="btn btn-sm btn-success" onclick="verifyHierarchyUser('${doc.id}')">Setujui</button>
+            </div>
+          </div>`;
+      });
+    }
+  }
+  
+  // ✅ KEPALA KELUARGA: lihat pending anggota keluarga
+  else if(currentWarga.data.role === 'kepala_keluarga' && currentWarga.data.status === 'aktif') {
+    const pending = await db.collection('Warga')
+      .where('kodeReferralUsed', '==', currentWarga.data.kodeReferral)
+      .where('status', '==', 'pending_referral')
+      .get();
+    
+    if(pending.empty) {
+      html = '<div class="muted small">Tidak ada anggota keluarga pending</div>';
+    } else {
+      pending.forEach(doc => {
+        const d = doc.data();
+        html += `
+          <div class="p-2 border rounded mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${escapeHtml(d.nama)}</strong>
+                <div class="small muted">${escapeHtml(d.role)} · ${escapeHtml(d.alamat || '')}</div>
+              </div>
+              <button class="btn btn-sm btn-success" onclick="verifyHierarchyUser('${doc.id}')">Setujui</button>
+            </div>
+          </div>`;
+      });
+    }
+    
+    // ✅ TAMPILKAN KODE REFERRAL
+    if(currentWarga.data.kodeReferral) {
+      html += `
+        <div class="p-3 border rounded mt-3 bg-light">
+          <div class="text-center">
+            <div class="small muted">Kode Referral Anda:</div>
+            <div class="h5 text-primary">${currentWarga.data.kodeReferral}</div>
+            <div class="small muted">Berikan kode ini ke anggota keluarga untuk registrasi</div>
+          </div>
+        </div>`;
+    }
+  }
+  
+  container.innerHTML = html || '<div class="muted small">Tidak ada yang perlu diverifikasi</div>';
+}
+
+/* ================== VERIFY HIERARCHY USER ================== */
+async function verifyHierarchyUser(userId){
+  try{
+    const userDoc = await db.collection('Warga').doc(userId).get();
+    if(!userDoc.exists) return err("User tidak ditemukan");
+    
+    const userData = userDoc.data();
+    const currentData = currentWarga.data;
+    
+    // ✅ CEK APAKAH BISA VERIFIKASI USER INI (berdasarkan hierarki)
+    let canVerify = false;
+    let reason = "";
+    
+    if(currentData.role === 'kepala_desa' && 
+       userData.role === 'kepala_dusun' && 
+       userData.desa === currentData.desa) {
+      canVerify = true;
+      reason = "Kepala Desa verifikasi Kepala Dusun di desa yang sama";
+    }
+    else if(currentData.role === 'kepala_dusun' && 
+            userData.role === 'ketua_rt_rw' && 
+            userData.dusun === currentData.dusun) {
+      canVerify = true;
+      reason = "Kepala Dusun verifikasi Ketua RW/RT di dusun yang sama";
+    }
+    else if(currentData.role === 'ketua_rt_rw' && 
+            userData.role === 'ketua_rt_rw' && 
+            userData.rw === currentData.rw &&
+            userData.rt && userData.rt !== currentData.rt) {
+      canVerify = true;
+      reason = "Ketua RW verifikasi Ketua RT di RW yang sama";
+    }
+    else if(currentData.role === 'ketua_rt_rw' && currentData.rt &&
+            userData.role === 'kepala_keluarga' && 
+            userData.rt === currentData.rt && 
+            userData.rw === currentData.rw) {
+      canVerify = true;
+      reason = "Ketua RT verifikasi Kepala Keluarga di RT yang sama";
+    }
+    else if(currentData.role === 'kepala_keluarga' && 
+            userData.kodeReferralUsed === currentData.kodeReferral) {
+      canVerify = true;
+      reason = "Kepala Keluarga verifikasi anggota dengan kode referral";
+    }
+    
+    if(!canVerify) return err("Anda tidak berwenang memverifikasi user ini");
+    
+    // ✅ KONFIRMASI VERIFIKASI
+    const conf = await Swal.fire({
+      title: 'Verifikasi User?',
+      html: `Verifikasi <strong>${escapeHtml(userData.nama)}</strong><br>
+             <small class="muted">${reason}</small>`,
+      icon: 'question',
+      showCancelButton: true
+    });
+    
+    if(!conf.isConfirmed) return;
+    
+    // ✅ LAKUKAN VERIFIKASI
+    await db.collection('Warga').doc(userId).update({
+      status: userData.role === 'kepala_keluarga' ? 'aktif' : 'aktif',
+      verifiedBy: currentWarga.id,
+      verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    toast("User berhasil diverifikasi");
+    loadPendingVerifications();
+    
+  }catch(e){ 
+    console.error("Verify error:", e); 
+    err("Gagal verifikasi: " + (e.message || "Coba lagi")); 
+  }
 }
 
 /* ================== UTILS ================== */
