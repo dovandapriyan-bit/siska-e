@@ -392,6 +392,10 @@ function showRegisterForm(){
   $('registerCard').style.display = 'block';
 }
 
+function formatPhoneTyping(el){ 
+  el.value = el.value.replace(/[^\d\+]/g,''); 
+}
+
 /* ================== CLOCK ================== */
 function updateClock(){ if($('clock')) $('clock').innerText = new Date().toLocaleString(); setTimeout(updateClock,1000); }
 updateClock();
@@ -644,14 +648,10 @@ async function loadProfileAndShow(){
 /* ================== CREATE DUSUN ================== */
 async function createDusun(){
   if(!currentWarga) return err("Login dulu");
-  
-  // Hanya kepala_dusun yang boleh membuat dusun
-  if(currentWarga.data.role !== 'kepala_dusun') 
-    return err("Hanya Kepala Dusun yang boleh membuat dusun");
-  
+  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
+  if(!kepalaRoles.includes(currentWarga.data.role)) return err("Hanya subrole kepala boleh membuat dusun");
   const nama = $('dusun_nama').value.trim();
   if(!nama) return err("Nama dusun wajib");
-  
   try{
     const kode = generateCode(6);
     const expiresMs = Date.now() + (60 * 60 * 1000);
@@ -661,6 +661,7 @@ async function createDusun(){
       kepalaId: currentWarga.id,
       kepalaNama: currentWarga.data.nama,
       kepalaHp: currentWarga.data.phone || '',
+      // SIMPAN DATA ALAMAT LENGKAP KEPALA DUSUN
       kepalaBlok: currentWarga.data.blok || '',
       kepalaNo: currentWarga.data.no || '',
       kepalaRt: currentWarga.data.rt || '',
