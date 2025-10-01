@@ -710,14 +710,7 @@ async function loadProfileAndShow(){
   // ✅ ✅ ✅ SAMPAI SINI
 
 
-    // TAMPILKAN CARD VERIFIKASI UNTUK ROLE KEPALA
-  const kepalaRoles = ['kepala_desa','kepala_dusun','ketua_rt_rw','kepala_keluarga'];
-  if(kepalaRoles.includes(currentWarga.data.role) && currentWarga.data.status === 'aktif') {
-    show('verificationCard');
-    loadPendingVerifications(); // ✅ LOAD DATA VERIFIKASI
-  } else {
-    hide('verificationCard');
-  }
+   
   
   if(currentWarga.data.kodeDusun){
     await loadDusunByCode(currentWarga.data.kodeDusun);
