@@ -597,30 +597,6 @@ function clearRegister(){
   if($('reg_des')) $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
 }
 
-function clearRegister(){
-  // Reset semua field form
-  const fields = ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'];
-  fields.forEach(id => {
-    if($(id)) $(id).value = '';
-  });
-  
-  // Reset dropdowns
-  if($('reg_status')) $('reg_status').selectedIndex = 0;
-  if($('reg_prov')) $('reg_prov').selectedIndex = 0;
-  if($('reg_kab')) $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
-  if($('reg_kec')) $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
-  if($('reg_des')) $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
-}
-function clearRegister(){
-  ['reg_nama','reg_hp','reg_password','reg_blok','reg_no','reg_rt','reg_rw','reg_alamat'].forEach(id=>{ 
-    if($(id)) $(id).value=''; 
-  });
-  $('reg_status').selectedIndex = 0;
-  $('reg_prov').selectedIndex = 0;
-  $('reg_kab').innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
-  $('reg_kec').innerHTML = '<option value="">Pilih Kecamatan</option>';
-  $('reg_des').innerHTML = '<option value="">Pilih Desa</option>';
-}
 
 /* ================== LOGIN ================== */
 async function onLogin(){
