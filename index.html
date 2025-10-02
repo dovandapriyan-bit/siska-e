@@ -480,6 +480,14 @@ function autofillAlamat(){
   $('reg_alamat').value = parts.join(', ');
 }
 
+/* ================== AUTO SHOW REGISTER ================== */
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('show') === 'register') {
+        showRegisterForm();
+    }
+});
+  
 /* ================== REGISTER ================== */
 async function onRegister(){
   const nama = $('reg_nama').value.trim();
