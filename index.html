@@ -385,6 +385,11 @@ function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.7) {
     });
 }
 
+  // Auto show register
+if (window.location.search.includes('show=register')) {
+    showRegisterForm();
+}
+
 /* ================== TOGGLE LOGIN/REGISTER FORM ================== */
 function showLoginForm(){
   $('loginCard').style.display = 'block';
