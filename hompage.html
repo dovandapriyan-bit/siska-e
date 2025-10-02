@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>SISKA-E - Sistem Keamanan Elektronik</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #7c3aed;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --success: #10b981;
+      --light: #f8fafc;
+      --dark: #1e293b;
+      --gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+      --gradient-dark: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    
+    /* Animated Background */
+    .animated-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      background: linear-gradient(45deg, #f0f9ff 0%, #e0f2fe 25%, #fef7ff 50%, #f0fdf4 75%, #fefce8 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+    }
+    
+    @keyframes gradientShift {
+      0% { background-position: 0% 50% }
+      50% { background-position: 100% 50% }
+      100% { background-position: 0% 50% }
+    }
+    
+    /* Floating Elements */
+    .floating-elements {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .floating-element {
+      position: absolute;
+      background: rgba(37, 99, 235, 0.1);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .floating-element:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      top: 20%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+    
+    .floating-element:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      top: 60%;
+      right: 10%;
+      animation-delay: 2s;
+    }
+    
+    .floating-element:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      bottom: 20%;
+      left: 20%;
+      animation-delay: 4s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    /* Navigation */
+    .navbar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 1.2rem 0;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .brand-main {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--dark);
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding: 120px 0 80px;
+      overflow: hidden;
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+    
+    .hero-badge {
+      display: inline-block;
+      background: var(--gradient);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+    
+    .hero-title {
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .hero-subtitle {
+      font-size: 1.3rem;
+      color: #64748b;
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+    
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    /* Buttons */
+    .btn-primary {
+      background: var(--gradient);
+      border: none;
+      padding: 15px 35px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
+    }
+    
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: 0.5s;
+    }
+    
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+    
+    .btn-outline-primary {
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 15px 35px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+    }
+    
+    /* Feature Cards */
+    .section {
+      padding: 100px 0;
+    }
+    
+    .section-title {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    
+    .section-badge {
+      display: inline-block;
+      background: var(--gradient);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    
+    .section-title h2 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .feature-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+      transition: all 0.4s ease;
+      height: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: var(--gradient);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-15px);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+      width: 90px;
+      height: 90px;
+      background: var(--gradient);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2rem;
+      color: white;
+      font-size: 2.5rem;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+    }
+    
+    .feature-card h3 {
+      color: var(--dark);
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    /* Stats Section */
+    .stats {
+      background: var(--gradient-dark);
+      color: white;
+      padding: 80px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stats::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.05)" points="0,1000 1000,0 1000,1000"/></svg>');
+    }
+    
+    .stat-item {
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .stat-number {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #fff 0%, #e0f2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+    
+    /* Process Section */
+    .process-step {
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+    }
+    
+    .step-number {
+      width: 60px;
+      height: 60px;
+      background: var(--gradient);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 auto 1.5rem;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+    
+    .process-connector {
+      position: absolute;
+      top: 30px;
+      right: -50%;
+      width: 100%;
+      height: 2px;
+      background: var(--gradient);
+      z-index: -1;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+      background: var(--gradient);
+      color: white;
+      padding: 100px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><circle fill="rgba(255,255,255,0.1)" cx="500" cy="500" r="400"/></svg>');
+    }
+    
+    .cta-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    
+    .cta-subtitle {
+      font-size: 1.3rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.9;
+    }
+    
+    .btn-light {
+      background: white;
+      color: var(--primary);
+      padding: 15px 40px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      border: none;
+    }
+    
+    .btn-light:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Footer */
+    .footer {
+      background: var(--dark);
+      color: white;
+      padding: 80px 0 30px;
+    }
+    
+    .footer h5 {
+      color: white;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .footer a {
+      color: #cbd5e1;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    
+    .footer a:hover {
+      color: white;
+    }
+    
+    .social-links a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      margin-right: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .social-links a:hover {
+      background: var(--primary);
+      transform: translateY(-3px);
+    }
+    
+    .copyright {
+      border-top: 1px solid #334155;
+      padding-top: 30px;
+      margin-top: 50px;
+      text-align: center;
+      color: #94a3b8;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      
+      .section-title h2 {
+        font-size: 2.2rem;
+      }
+      
+      .cta-title {
+        font-size: 2.5rem;
+      }
+      
+      .process-connector {
+        display: none;
+      }
+      
+      .hero-buttons {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="animated-bg"></div>
+  <div class="floating-elements">
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+    <div class="floating-element"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <div class="brand-text">
+          <span class="brand-main">SISKA-E</span>
+          <span class="brand-sub">Sistem Keamanan Elektronik</span>
+        </div>
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a href="index.html" class="btn btn-primary">
+          <i class="fas fa-sign-in-alt me-2"></i>Login / Daftar
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <div class="hero-content">
+            <div class="hero-badge">
+              <i class="fas fa-shield-alt me-2"></i>Platform Keamanan Terdepan
+            </div>
+            <h1 class="hero-title">Lindungi Komunitas Anda Dengan Teknologi Terkini</h1>
+            <p class="hero-subtitle">
+              SISKA-E menghadirkan solusi keamanan digital terintegrasi dengan fitur canggih untuk melindungi dusun dan lingkungan Anda 24/7
+            </p>
+            <div class="hero-buttons">
+              <a href="index.html" class="btn btn-primary">
+                <i class="fas fa-rocket me-2"></i>Mulai Sekarang
+              </a>
+              <a href="#features" class="btn btn-outline-primary">
+                <i class="fas fa-play-circle me-2"></i>Lihat Demo
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="text-center">
+            <div class="feature-card mx-auto" style="max-width: 400px;">
+              <div class="feature-icon mx-auto">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <h3>Akses Real-time</h3>
+              <p>Pantau keamanan wilayah Anda kapan saja, di mana saja melalui smartphone</p>
+              <div class="mt-3">
+                <div class="d-flex justify-content-center gap-3">
+                  <i class="fas fa-bell text-success fa-2x"></i>
+                  <i class="fas fa-map-marked-alt text-primary fa-2x"></i>
+                  <i class="fas fa-users text-warning fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="section">
+    <div class="container">
+      <div class="section-title">
+        <div class="section-badge">Fitur Unggulan</div>
+        <h2>Teknologi Canggih Untuk Keamanan Optimal</h2>
+        <p class="text-muted">Dilengkapi dengan fitur-fitur terdepan untuk perlindungan maksimal</p>
+      </div>
+      
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-bolt"></i>
+            </div>
+            <h3>SOS Emergency</h3>
+            <p>Tombol darurat satu klik dengan notifikasi real-time dan pelacakan GPS otomatis untuk respons cepat</p>
+            <ul class="mt-3">
+              <li>Notifikasi instan ke pihak berwenang</li>
+              <li>Lokasi GPS akurat</li>
+              <li>Respon waktu nyata</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <h3>Smart Mapping</h3>
+            <p>Pemetaan digital interaktif dengan update real-time pos keamanan dan area rawan</p>
+            <ul class="mt-3">
+              <li>Peta interaktif real-time</li>
+              <li>Monitoring pos keamanan</li>
+              <li>Identifikasi area rawan</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-network-wired"></i>
+            </div>
+            <h3>Hierarchy System</h3>
+            <p>Sistem manajemen berjenjang dari tingkat desa hingga RT dengan verifikasi terstruktur</p>
+            <ul class="mt-3">
+              <li>Struktur organisasi jelas</li>
+              <li>Verifikasi berjenjang</li>
+              <li>Akuntabilitas terjamin</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Smart Analytics</h3>
+            <p>Analisis data cerdas dengan statistik pola kejadian dan prediksi tingkat keamanan</p>
+            <ul class="mt-3">
+              <li>Dashboard analitik real-time</li>
+              <li>Prediksi pola keamanan</li>
+              <li>Laporan otomatis</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-broadcast-tower"></i>
+            </div>
+            <h3>Real-time Sync</h3>
+            <p>Sinkronisasi data real-time antar perangkat dengan notifikasi push instan</p>
+            <ul class="mt-3">
+              <li>Sinkronisasi cloud</li>
+              <li>Notifikasi push</li>
+              <li>Multi-device support</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-database"></i>
+            </div>
+            <h3>Secure Cloud</h3>
+            <p>Penyimpanan data terenkripsi dengan backup otomatis dan keamanan tingkat tinggi</p>
+            <ul class="mt-3">
+              <li>Enkripsi data end-to-end</li>
+              <li>Backup otomatis</li>
+              <li>Keamanan maksimal</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats">
+    <div class="container">
+      <div class="row text-center">
+        <div class="col-md-3 col-6 mb-4">
+          <div class="stat-item">
+            <div class="stat-number">1K+</div>
+            <div class="stat-label">Pengguna Aktif</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+          <div class="stat-item">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Monitoring</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+          <div class="stat-item">
+            <div class="stat-number">100+</div>
+            <div class="stat-label">Dusun Terlindungi</div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6 mb-4">
+          <div class="stat-item">
+            <div class="stat-number">99.9%</div>
+            <div class="stat-label">Uptime Server</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process Section -->
+  <section class="section bg-light">
+    <div class="container">
+      <div class="section-title">
+        <div class="section-badge">Cara Kerja</div>
+        <h2>Mulai Dalam 3 Langkah Mudah</h2>
+        <p class="text-muted">Proses sederhana untuk keamanan maksimal</p>
+      </div>
+      
+      <div class="row">
+        <div class="col-lg-4">
+          <div class="process-step">
+            <div class="step-number">1</div>
+            <h4>Daftar & Verifikasi</h4>
+            <p>Registrasi dengan data lengkap dan verifikasi identitas oleh sistem hierarki</p>
+            <div class="process-connector"></div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="process-step">
+            <div class="step-number">2</div>
+            <h4>Bergabung Dusun</h4>
+            <p>Masukkan kode akses dusun untuk terhubung dengan komunitas keamanan setempat</p>
+            <div class="process-connector"></div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="process-step">
+            <div class="step-number">3</div>
+            <h4>Aktif & Monitor</h4>
+            <p>Akses semua fitur keamanan dan pantau kondisi wilayah secara real-time</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-title">Siap Tingkatkan Keamanan Komunitas Anda?</h2>
+      <p class="cta-subtitle">Bergabung dengan ribuan pengguna yang telah mempercayai SISKA-E untuk perlindungan optimal</p>
+      <a href="index.html" class="btn btn-light btn-lg">
+        <i class="fas fa-user-plus me-2"></i>Daftar Sekarang - Gratis!
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-4 mb-5">
+          <div class="brand-text mb-4">
+            <span class="brand-main" style="-webkit-text-fill-color: white;">SISKA-E</span>
+            <span class="brand-sub text-light">Sistem Keamanan Elektronik</span>
+          </div>
+          <p class="text-light mb-4">Platform keamanan digital terintegrasi untuk melindungi komunitas dengan teknologi terkini dan respons cepat 24/7.</p>
+          <div class="social-links">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 mb-5">
+          <h5>Navigasi</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="#">Beranda</a></li>
+            <li class="mb-2"><a href="#features">Fitur</a></li>
+            <li class="mb-2"><a href="#">Tentang</a></li>
+            <li class="mb-2"><a href="#">Kontak</a></li>
+          </ul>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 mb-5">
+          <h5>Dukungan</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="#">Pusat Bantuan</a></li>
+            <li class="mb-2"><a href="#">Kebijakan Privasi</a></li>
+            <li class="mb-2"><a href="#">Syarat Layanan</a></li>
+            <li class="mb-2"><a href="#">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 mb-5">
+          <h5>Kontak</h5>
+          <ul class="list-unstyled text-light">
+            <li class="mb-3">
+              <i class="fas fa-envelope me-2 text-primary"></i>
+              support@siskae.id
+            </li>
+            <li class="mb-3">
+              <i class="fas fa-phone me-2 text-primary"></i>
+              +62 21 2345 6789
+            </li>
+            <li class="mb-3">
+              <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+              Jakarta, Indonesia
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="copyright">
+        <p>&copy; 2024 SISKA-E. Seluruh hak cipta dilindungi undang-undang.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Login/Register Modal -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Masuk ke SISKA-E</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Login Form -->
+        <div id="loginForm">
+          <div class="mb-3">
+            <label class="form-label">Nomor HP</label>
+            <input type="tel" class="form-control" id="modalLoginHp" placeholder="0812xxx">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="modalLoginPass" placeholder="Password">
+          </div>
+          <button class="btn btn-primary w-100 mb-3" onclick="modalLogin()">Login</button>
+          <div class="text-center">
+            <small>Belum punya akun? <a href="javascript:void(0)" onclick="showRegisterForm()">Daftar di sini</a></small>
+          </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" style="display: none;">
+          <div class="mb-3">
+            <label class="form-label">Nama Lengkap</label>
+            <input type="text" class="form-control" id="modalRegNama" placeholder="Nama lengkap">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nomor HP</label>
+            <input type="tel" class="form-control" id="modalRegHp" placeholder="0812xxx">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" id="modalRegPass" placeholder="Minimal 6 karakter">
+          </div>
+          <button class="btn btn-success w-100 mb-3" onclick="modalRegister()">Daftar</button>
+          <div class="text-center">
+            <small>Sudah punya akun? <a href="javascript:void(0)" onclick="showLoginForm()">Login di sini</a></small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Modal Auth Functions
+function showLoginForm() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+}
+
+function showRegisterForm() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+}
+
+function modalLogin() {
+  const hp = document.getElementById('modalLoginHp').value;
+  const pass = document.getElementById('modalLoginPass').value;
+  
+  if(!hp || !pass) {
+    alert('Nomor HP dan password harus diisi');
+    return;
+  }
+  
+  // Redirect ke aplikasi utama dengan parameter login
+  window.location.href = `index.html?action=login&hp=${encodeURIComponent(hp)}&pass=${encodeURIComponent(pass)}`;
+}
+
+function modalRegister() {
+  const nama = document.getElementById('modalRegNama').value;
+  const hp = document.getElementById('modalRegHp').value;
+  const pass = document.getElementById('modalRegPass').value;
+  
+  if(!nama || !hp || !pass) {
+    alert('Semua field harus diisi');
+    return;
+  }
+  
+  if(pass.length < 6) {
+    alert('Password minimal 6 karakter');
+    return;
+  }
+  
+  // Redirect ke aplikasi utama dengan parameter register
+  window.location.href = `index.html?action=register&nama=${encodeURIComponent(nama)}&hp=${encodeURIComponent(hp)}&pass=${encodeURIComponent(pass)}`;
+}
+
+// Open modal when Login/Daftar button clicked
+document.addEventListener('DOMContentLoaded', function() {
+  const authButtons = document.querySelectorAll('a[href="index.html"]');
+  authButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+      authModal.show();
+    });
+  });
+});
+  
+</script>
+</body>
+</html>
