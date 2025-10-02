@@ -673,10 +673,13 @@ function showDashboard(){
 async function onLogout(){
   try{
     await auth.signOut();
-    toast("Logout berhasil");
-  }catch(e){ console.error(e); err(e.message || String(e)); }
+    // Redirect langsung ke homepage
+    window.location.href = "homepage.html";
+  }catch(e){ 
+    console.error(e); 
+    err(e.message || String(e)); 
+  }
 }
-
 /* ================== LOAD PROFILE & INIT DASHBOARD ================== */
 async function loadProfileAndShow(){
   if(!auth.currentUser) return;
