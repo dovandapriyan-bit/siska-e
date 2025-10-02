@@ -57,6 +57,19 @@
     <!-- AUTH -->
   <div id="authCard" class="card p-3">
 
+    <!-- Profile Modal -->
+<div id="profileModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h5>Profile User</h5>
+    <div id="profileContent">
+      <!-- Data akan diisi oleh JavaScript -->
+    </div>
+    <div class="d-flex gap-2 mt-3 justify-content-end">
+      <button class="btn btn-secondary" onclick="closeProfile()">Tutup</button>
+    </div>
+  </div>
+</div>
+
     <!-- FORM LOGIN -->
     <div id="loginCard">
       <h5>Login</h5>
@@ -128,9 +141,13 @@
         <div class="muted small">Waktu: <span id="clock"></span></div>
       </div>
       <div class="text-end">
-        <button class="btn btn-danger btn-sm" onclick="onLogout()">Logout</button>
-      </div>
-    </div>
+       <!-- TAMBAH BUTTON PROFILE -->
+    <button class="btn btn-outline-primary btn-sm me-2" onclick="showProfile()">
+      <i class="fas fa-user me-1"></i>Profile
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="onLogout()">Logout</button>
+  </div>
+</div>
 
     <div class="row g-3">
       <div class="col-lg-4">
@@ -388,6 +405,122 @@ function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.7) {
   // Auto show register
 if (window.location.search.includes('show=register')) {
     showRegisterForm();
+}
+
+  /* ================== PROFILE FUNCTIONS ================== */
+function showProfile() {
+    if (!currentWarga) return;
+    
+    const profileData = currentWarga.data;
+    const html = `
+        <div class="mb-3">
+            <strong>Nama Lengkap:</strong><br>
+            ${escapeHtml(profileData.nama || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>Nomor HP:</strong><br>
+            ${escapeHtml(profileData.phone || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>Role:</strong><br>
+            ${escapeHtml(profileData.role || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>Status:</strong><br>
+            ${escapeHtml(profileData.status || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>Alamat:</strong><br>
+            ${escapeHtml(profileData.alamat || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>RT/RW:</strong><br>
+            ${escapeHtml(profileData.rt || '-'} / ${escapeHtml(profileData.rw || '-')}
+        </div>
+        <div class="mb-3">
+            <strong>Bergabung:</strong><br>
+            ${profileData.createdAt ? new Date(profileData.createdAt.seconds * 1000).toLocaleDateString('id-ID') : '-'}
+        </div>
+        
+        <div class="border-top pt-3 mt-3">
+            <h6>Update Data</h6>
+            <button class="btn btn-warning btn-sm me-2" onclick="showChangeRole()">Change Role</button>
+            <button class="btn btn-info btn-sm" onclick="showChangePassword()">Change Password</button>
+        </div>
+    `;
+    
+    $('#profileContent').innerHTML = html;
+    show('profileModal');
+}
+
+function closeProfile() {
+    hide('profileModal');
+}
+
+function showChangeRole() {
+    // Fitur change role (bisa dikembangkan)
+    alert('Fitur change role akan segera hadir!');
+}
+
+function showChangePassword() {
+    // Fitur change password
+    Swal.fire({
+        title: 'Change Password',
+        html: `
+            <input type="password" id="currentPass" class="form-control mb-2" placeholder="Password saat ini">
+            <input type="password" id="newPass" class="form-control mb-2" placeholder="Password baru">
+            <input type="password" id="confirmPass" class="form-control" placeholder="Konfirmasi password baru">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Update Password',
+        preConfirm: () => {
+            const current = document.getElementById('currentPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const confirm = document.getElementById('confirmPass').value;
+            
+            if (!current || !newPass || !confirm) {
+                Swal.showValidationMessage('Semua field harus diisi');
+                return false;
+            }
+            
+            if (newPass.length < 6) {
+                Swal.showValidationMessage('Password baru minimal 6 karakter');
+                return false;
+            }
+            
+            if (newPass !== confirm) {
+                Swal.showValidationMessage('Password baru tidak cocok');
+                return false;
+            }
+            
+            return { current, newPass };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            changePassword(result.value.current, result.value.newPass);
+        }
+    });
+}
+
+async function changePassword(currentPass, newPass) {
+    try {
+        const user = auth.currentUser;
+        const email = user.email;
+        
+        // Re-authenticate user
+        const credential = firebase.auth.EmailAuthProvider.credential(email, currentPass);
+        await user.reauthenticateWithCredential(credential);
+        
+        // Update password
+        await user.updatePassword(newPass);
+        
+        toast('Password berhasil diupdate!');
+        closeProfile();
+        
+    } catch (error) {
+        console.error('Password change error:', error);
+        err('Gagal update password: ' + (error.message || 'Password saat ini salah'));
+    }
 }
 
 /* ================== TOGGLE LOGIN/REGISTER FORM ================== */
