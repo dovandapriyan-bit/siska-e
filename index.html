@@ -846,8 +846,8 @@ function clearRegister(){
 }
 
 async function onLogin(){
-  const hp = $('login_hp').value.trim();
-  const pass = $('login_pass').value;
+  const hp = document.getElementById('login_hp').value.trim();
+  const pass = document.getElementById('login_pass').value;
   
   if(!hp || !pass) return err("Nomor HP & password wajib");
   
@@ -859,7 +859,7 @@ async function onLogin(){
     const cred = await auth.signInWithEmailAndPassword(email, pass);
     
     currentUser = cred.user;
-    $('login_pass').value = '';
+    document.getElementById('login_pass').value = '';
     
     await loadProfileAndShow();
     toast("Login berhasil");
@@ -881,7 +881,6 @@ async function onLogin(){
     err(errorMessage);
   }
 }
-
 
 /* ================== AUTH STATE LISTENER ================== */
 auth.onAuthStateChanged(async u=>{
