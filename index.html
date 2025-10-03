@@ -938,7 +938,7 @@ auth.onAuthStateChanged(async u => {
       await loadProfileAndShow(); // Langsung load dashboard
     } catch(e){ 
       console.warn('Auth state error:', e);
-      showAuth(); 
+      
     }
   } else {
     currentUser = null; 
