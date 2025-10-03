@@ -931,26 +931,24 @@ async function onLogin(){
 }
 
 /* ================== AUTH STATE LISTENER ================== */
-auth.onAuthStateChanged(async u=>{
+auth.onAuthStateChanged(async u => {
   if(u){
-    currentUser = u;
-    try{ await loadProfileAndShow(); } catch(e){ console.warn(e); showAuth(); }
+    try {
+      currentUser = u;
+      await loadProfileAndShow(); // Langsung load dashboard
+    } catch(e){ 
+      console.warn('Auth state error:', e);
+      showAuth(); 
+    }
   } else {
-    currentUser = null; currentWarga = null; currentDusun = null;
+    currentUser = null; 
+    currentWarga = null; 
+    currentDusun = null;
     showAuth();
   }
 });
 
-function showAuth(){ 
-  show('authCard'); 
-  hide('dashboardCard'); 
-}
-
-function showDashboard(){ 
-  hide('authCard'); 
-  show('dashboardCard'); 
-}
-
+  
 /* ================== LOGOUT ================== */
 async function onLogout(){
   try{
