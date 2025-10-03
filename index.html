@@ -32,6 +32,40 @@
     width: 20px;
     text-align: center;
 }
+
+    /* Sidebar Mobile */
+@media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 1050;
+    transition: left 0.3s ease;
+    background: white;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-container.sidebar-open {
+    left: 0;
+  }
+  
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+  }
+  
+  .sidebar-overlay.show {
+    display: block;
+  }
+}
   
     /* Semua input pendaftaran otomatis huruf besar */
 #authCard input,
@@ -167,6 +201,7 @@
     <div class="col-lg-3 col-md-4 mb-3">
       <div class="card">
         <div class="card-body">
+          <div class="col-lg-3 col-md-4 mb-3 sidebar-container">
           <!-- User Info -->
           <div class="text-center mb-4">
             <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
@@ -630,6 +665,22 @@ async function changePassword(currentPass, newPass) {
 
 
 /* ================== TOGGLE LOGIN/REGISTER FORM ================== */
+function toggleSidebar() {
+   const sidebar = document.querySelector('.sidebar-container');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('sidebar-open');
+    
+    if (!overlay) {
+        // Buat overlay jika belum ada
+        const newOverlay = document.createElement('div');
+        newOverlay.className = 'sidebar-overlay';
+        newOverlay.onclick = toggleSidebar;
+        document.body.appendChild(newOverlay);
+    }
+    
+    document.querySelector('.sidebar-overlay').classList.toggle('show');
+}
 function showLoginForm(){
   $('loginCard').style.display = 'block';
   $('registerCard').style.display = 'none';
