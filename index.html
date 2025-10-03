@@ -431,6 +431,15 @@ function normalizePhoneForKey(v){ let s=(v||"").replace(/\D/g,""); if(s.startsWi
 function padRT(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0'); el.value=v; }
 function padRW(el){ let v=(el.value||'').replace(/\D/g,''); v=v.padStart(3,'0'); el.value=v; }
 function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showDashboard() {
+    hide('authCard');
+    show('dashboardCard');
+}
+
+function showAuth() {
+    show('authCard');
+    hide('dashboardCard');
+}
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
