@@ -893,7 +893,11 @@ function clearRegister(){
   fields.forEach(id => {
     if($(id)) $(id).value = '';
   });
-  
+
+function navigateTo(pageId) {
+  localStorage.setItem("lastPage", pageId); // simpan halaman terakhir
+  showPage(pageId); // tampilkan halaman
+}
   // Reset dropdowns
   if($('reg_status')) $('reg_status').selectedIndex = 0;
   if($('reg_prov')) $('reg_prov').selectedIndex = 0;
@@ -941,21 +945,32 @@ async function onLogin(){
 
 /* ================== AUTH STATE LISTENER ================== */
 auth.onAuthStateChanged(async u => {
-  if(u){
+  if (u) {
     try {
       currentUser = u;
-      await loadProfileAndShow(); // Langsung load dashboard
-    } catch(e){ 
+
+      // ✅ cek halaman terakhir
+      const lastPage = localStorage.getItem("lastPage") || "dashboard";
+
+      // kalau lastPage = dashboard, jalankan normal
+      if (lastPage === "dashboard") {
+        await loadProfileAndShow();
+      } else {
+        showPage(lastPage); // buka halaman terakhir
+      }
+
+    } catch (e) { 
       console.warn('Auth state error:', e);
-      
     }
   } else {
     currentUser = null; 
     currentWarga = null; 
     currentDusun = null;
-    showAuth();
+    localStorage.removeItem("lastPage"); // reset biar ga nyangkut
+    showPage("homepage"); // ✅ bukan showAuth()
   }
 });
+
 
   
 /* ================== LOGOUT ================== */
@@ -1013,10 +1028,7 @@ async function loadProfileAndShow(){
     hide('verificationCard');
   }
   // ✅ ✅ ✅ SAMPAI SINI
-
-
-   
-  
+ 
   if(currentWarga.data.kodeDusun){
     await loadDusunByCode(currentWarga.data.kodeDusun);
     loadPosList();
