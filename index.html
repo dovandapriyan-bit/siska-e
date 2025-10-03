@@ -511,6 +511,17 @@ if (window.location.search.includes('show=register')) {
     showRegisterForm();
 }
 
+  function showPage(pageId) {
+  // simpan halaman terakhir
+  localStorage.setItem("lastPage", pageId);
+
+  // sembunyikan semua
+  document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+
+  // tampilkan yang dipilih
+  document.getElementById(pageId).style.display = "block";
+}
+
   /* ================== SIDEBAR FUNCTIONS ================== */
 function updateSidebarInfo() {
     if (!currentWarga) return;
@@ -949,29 +960,27 @@ auth.onAuthStateChanged(async u => {
     try {
       currentUser = u;
 
-      // ✅ cek halaman terakhir
-      const lastPage = localStorage.getItem("lastPage") || "dashboard";
+      // cek halaman terakhir
+      const lastPage = localStorage.getItem("lastPage");
 
-      // kalau lastPage = dashboard, jalankan normal
-      if (lastPage === "dashboard") {
-        await loadProfileAndShow();
+      if (lastPage) {
+        showPage(lastPage);  // buka halaman terakhir
       } else {
-        showPage(lastPage); // buka halaman terakhir
+        await loadProfileAndShow(); // default dashboard
       }
 
-    } catch (e) { 
+    } catch (e) {
       console.warn('Auth state error:', e);
     }
   } else {
-    currentUser = null; 
-    currentWarga = null; 
+    currentUser = null;
+    currentWarga = null;
     currentDusun = null;
-    localStorage.removeItem("lastPage"); // reset biar ga nyangkut
-    showPage("homepage"); // ✅ bukan showAuth()
+
+    localStorage.removeItem("lastPage"); 
+    showPage("homepage");  // kalau belum login, buka homepage
   }
 });
-
-
   
 /* ================== LOGOUT ================== */
 async function onLogout(){
