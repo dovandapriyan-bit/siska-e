@@ -97,6 +97,7 @@
   </div>
 </div>
 
+    
     <!-- FORM LOGIN -->
     <div id="loginCard">
       <h5>Login</h5>
@@ -195,25 +196,25 @@
       </div>
     </div>
       <!-- Main Content -->
-    <div class="col-lg-9 col-md-8">
-      <div class="topbar d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h4>Dashboard Dusun</h4>
-          <div class="muted small">Waktu: <span id="clock"></span></div>
-        </div>
-      </div>
+<div class="col-lg-9 col-md-8">
+  <div class="topbar d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex align-items-center">
+      <!-- TOMBOL HAMBURGER -->
+      <button class="btn btn-outline-secondary btn-sm me-3 d-md-none" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div>
         <h4>Dashboard Dusun</h4>
-        <div class="muted">Selamat datang, <b id="display_name"></b> · <span id="display_role"></span> · <span id="display_status"></span></div>
         <div class="muted small">Waktu: <span id="clock"></span></div>
       </div>
-      <div class="text-end">
-       <!-- TAMBAH BUTTON PROFILE -->
-    <button class="btn btn-outline-primary btn-sm me-2" onclick="showProfile()">
-      <i class="fas fa-user me-1"></i>Profile
-    </button>
-    <button class="btn btn-danger btn-sm" onclick="onLogout()">Logout</button>
+    </div>
+    <div class="text-end">
+      <button class="btn btn-outline-primary btn-sm me-2" onclick="showProfile()">
+        <i class="fas fa-user me-1"></i>Profile
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="onLogout()">Logout</button>
+    </div>
   </div>
-</div>
 
     <div class="row g-3">
       <div class="col-lg-4">
