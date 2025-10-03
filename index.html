@@ -134,8 +134,47 @@
 
   <!-- Dashboard -->
   <div id="dashboardCard" class="card p-3 hidden">
-    <div class="topbar d-flex justify-content-between align-items-center mb-2">
-      <div>
+   <div class="row">
+    <!-- Sidebar -->
+    <div class="col-lg-3 col-md-4 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <!-- User Info -->
+          <div class="text-center mb-4">
+            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                 style="width: 80px; height: 80px;">
+              <i class="fas fa-user text-white fa-2x"></i>
+            </div>
+            <h5 class="mt-2 mb-1" id="sidebar_name"></h5>
+            <small class="text-muted" id="sidebar_role"></small>
+          </div>
+
+          <!-- Menu Items -->
+          <div class="nav flex-column">
+            <button class="btn btn-outline-primary text-start mb-2 active" onclick="showDashboardView()">
+              <i class="fas fa-home me-2"></i>Dashboard
+            </button>
+            <button class="btn btn-outline-primary text-start mb-2" onclick="showProfile()">
+              <i class="fas fa-user me-2"></i>Profile
+            </button>
+            <button class="btn btn-outline-primary text-start mb-2" onclick="showChangePassword()">
+              <i class="fas fa-key me-2"></i>Ganti Password
+            </button>
+            <button class="btn btn-outline-danger text-start mb-2" onclick="onLogout()">
+              <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+      <!-- Main Content -->
+    <div class="col-lg-9 col-md-8">
+      <div class="topbar d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4>Dashboard Dusun</h4>
+          <div class="muted small">Waktu: <span id="clock"></span></div>
+        </div>
+      </div>
         <h4>Dashboard Dusun</h4>
         <div class="muted">Selamat datang, <b id="display_name"></b> · <span id="display_role"></span> · <span id="display_status"></span></div>
         <div class="muted small">Waktu: <span id="clock"></span></div>
@@ -407,6 +446,44 @@ if (window.location.search.includes('show=register')) {
     showRegisterForm();
 }
 
+  /* ================== SIDEBAR FUNCTIONS ================== */
+function updateSidebarInfo() {
+    if (!currentWarga) return;
+    
+    $('#sidebar_name').textContent = currentWarga.data.nama || '';
+    $('#sidebar_role').textContent = (currentWarga.data.role || '').toUpperCase();
+}
+
+function showDashboardView() {
+    // Reset active state
+    document.querySelectorAll('.nav .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.nav .btn')[0].classList.add('active');
+    
+    // Tampilkan dashboard (default sudah tampil)
+}
+
+// Update sidebar ketika load profile
+async function loadProfileAndShow(){
+  if(!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
+  const doc = await db.collection('Warga').doc(uid).get();
+  if(!doc.exists){ showAuth(); return; }
+  currentWarga = { id: doc.id, data: doc.data() };
+  
+  // Update semua display
+  $('display_name').innerText = currentWarga.data.nama || '';
+  $('display_role').innerText = (currentWarga.data.role || '').toUpperCase();
+  $('display_status').innerText = (currentWarga.data.status || '').toUpperCase();
+  
+  // UPDATE SIDEBAR
+  updateSidebarInfo();
+  
+  showDashboard();
+  // ... kode lainnya ...
+}
+  
   /* ================== PROFILE FUNCTIONS ================== */
 function showProfile() {
     if (!currentWarga) return;
@@ -523,6 +600,31 @@ async function changePassword(currentPass, newPass) {
     }
 }
 
+  /* Sidebar Styles */
+.nav .btn {
+    border: 1px solid #dee2e6;
+    padding: 12px 15px;
+    text-align: left;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.nav .btn:hover {
+    background-color: #e9ecef;
+    border-color: #007bff;
+}
+
+.nav .btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.nav .btn i {
+    width: 20px;
+    text-align: center;
+}
+  
 /* ================== TOGGLE LOGIN/REGISTER FORM ================== */
 function showLoginForm(){
   $('loginCard').style.display = 'block';
