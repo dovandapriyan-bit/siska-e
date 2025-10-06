@@ -932,28 +932,21 @@ auth.onAuthStateChanged(async u => {
   if (u) {
     try {
       currentUser = u;
-
-      // cek halaman terakhir
-      const lastPage = localStorage.getItem("lastPage");
-
-      if (lastPage) {
-        showPage(lastPage);  // buka halaman terakhir
-      } else {
-        await loadProfileAndShow(); // default dashboard
-      }
-
+      // User sudah login → langsung buka dashboard
+      await loadProfileAndShow();  
     } catch (e) {
       console.warn('Auth state error:', e);
     }
   } else {
+    // User belum login / sudah logout
     currentUser = null;
     currentWarga = null;
     currentDusun = null;
 
-    localStorage.removeItem("lastPage"); 
-    showPage("homepage");  // kalau belum login, buka homepage
+    showPage("homepage"); // cuma muncul kalau belum login
   }
 });
+
   
 /* ================== LOGOUT ================== */
 async function onLogout(){
