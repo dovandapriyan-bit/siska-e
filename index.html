@@ -112,6 +112,21 @@
 .btn-close-custom:hover {
   background: #f8f9fa;
 }
+
+    /* Tambahkan di style */
+.sticky-modal-header {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 0;
+}
+
+.modal-scroll-content {
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
+}
     
     /* Bottom Navigation */
     .bottom-nav {
@@ -465,7 +480,6 @@
       <div class="d-flex align-items-center">
         <div>
           Selamat datang, <b id="display_name"></b> · 
-          <span id="display_role"></span> · 
           <span id="display_status"></span>
         </div>
       </div>
@@ -512,6 +526,15 @@
         </div>
       </div>
 
+        <!-- Anggota Keluarga -->
+        <div class="card p-3 mb-3">
+          <h6>Anggota Keluarga (Alamat Sama)</h6>
+          <div id="familyList">Memuat...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
       <div class="col-lg-8">
         <!-- Map -->
         <div class="card p-3 mb-3">
@@ -536,14 +559,7 @@
           <div id="statSummary" class="mt-2"></div>
         </div>
 
-        <!-- Anggota Keluarga -->
-        <div class="card p-3 mb-3">
-          <h6>Anggota Keluarga (Alamat Sama)</h6>
-          <div id="familyList">Memuat...</div>
-        </div>
-      </div>
-    </div>
-  </div>
+      
 
   <!-- Statistik Page -->
   <div id="statistikPage" class="page hidden">
@@ -682,14 +698,19 @@
 <!-- Pos View Modal -->
 <div id="posViewModal" class="modal-overlay hidden">
   <div class="modal-box">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- HEADER TETAP DI ATAS -->
+    <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white py-2" style="z-index: 10; border-bottom: 1px solid #e9ecef;">
       <h5 class="mb-0">Detail Pos</h5>
       <button class="btn btn-sm btn-outline-secondary" onclick="closePosView()" style="border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <div id="posViewContent"></div>
-    <div id="posViewMap" class="mt-2"></div>
+    
+    <!-- CONTENT BISA SCROLL -->
+    <div style="max-height: calc(90vh - 80px); overflow-y: auto;">
+      <div id="posViewContent"></div>
+      <div id="posViewMap" class="mt-2"></div>
+    </div>
   </div>
 </div>
 
@@ -1957,86 +1978,93 @@ async function updatePos(id){
   }catch(e){ console.error(e); err("Gagal update pos"); }
 }
 
-/* ================== LOAD POS LIST ================== */
-async function loadPosList(){
+/* ================== LOAD ALL POS LIST ================== */
+async function loadAllPosList() {
   if(!currentWarga || !currentWarga.data.kodeDusun){ 
-    $('posList').innerHTML = '<div class="muted">Gabung dusun untuk melihat daftar pos.</div>'; 
+    document.getElementById('allPosList').innerHTML = '<div class="muted text-center py-4">Gabung dusun untuk melihat pos.</div>'; 
     return; 
   }
+  
   try{
     const snap = await db.collection('PosDusun').where('dusunCode','==', currentWarga.data.kodeDusun).get();
-    allPosData = [];
-    snap.forEach(doc => allPosData.push({ id: doc.id, data: doc.data() }));
-    allPosData.sort((a,b)=>{
-      const ta = a.data.createdAt ? a.data.createdAt.seconds || 0 : 0;
-      const tb = b.data.createdAt ? b.data.createdAt.seconds || 0 : 0;
-      return tb - ta;
-    });
     
-    renderPosPagination();
-    
-  }catch(e){ console.error(e); $('posList').innerHTML = '<div class="muted">Gagal muat pos</div>'; }
-}
-
-function renderPosPagination() {
-  const startIndex = (currentPosPage - 1) * posPerPage;
-  const paginatedData = allPosData.slice(startIndex, startIndex + posPerPage);
-  const totalPages = Math.ceil(allPosData.length / posPerPage);
-  
-  let html = '';
-  if (paginatedData.length === 0) {
-    html = '<div class="muted">Belum ada pos.</div>';
-  } else {
-    paginatedData.forEach(item => {
-      const d = item.data; 
-      const id = item.id;
-      
-      // Format status dan jenis
-      const statusText = d.status === 'active' ? 'AKTIF' : 'PASIF';
-      const statusClass = d.status === 'active' ? 'status-aman' : 'status-rawan';
-      const jenisText = d.jenis === 'pos_dusun' ? 'Pos Dusun' : 'Pos RT';
-      
-      html += `
-        <div class="p-3 border rounded mb-3">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="flex-grow-1">
-              <h6 class="mb-1 text-primary">${escapeHtml(d.nama)}</h6>
-              <div class="small text-muted mb-1">
-                <span class="me-3">RT/RW: ${escapeHtml(d.rt||'-')}/${escapeHtml(d.rw||'-')}</span>
-                <span class="me-3">Jenis: ${jenisText}</span>
-                <span class="${statusClass}">Status: ${statusText}</span>
-              </div>
-              <div class="small text-muted">
-                Pembuat: ${escapeHtml(d.pembuatNama||'-')}
+    let html = '';
+    if(snap.empty){ 
+      html = '<div class="muted text-center py-4">Belum ada pos di dusun ini.</div>'; 
+    } else {
+      snap.forEach(doc => {
+        const pos = { id: doc.id, data: doc.data() };
+        const fotoUrl = pos.data.fotoBase64 && pos.data.fotoBase64.length > 0 ? pos.data.fotoBase64[0] : '';
+        const statusText = pos.data.status === 'active' ? 'AKTIF' : 'PASIF';
+        const statusClass = pos.data.status === 'active' ? 'status-aman' : 'status-rawan';
+        const jenisText = pos.data.jenis === 'pos_dusun' ? 'Pos Dusun' : 'Pos RT';
+        
+        html += `
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <!-- Foto -->
+                <div class="col-auto">
+                  <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden;">
+                    ${fotoUrl ? 
+                      `<img src="${fotoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="${pos.data.nama}">` :
+                      `<div class="d-flex align-items-center justify-content-center h-100 bg-light text-muted">
+                         <i class="fas fa-camera"></i>
+                       </div>`
+                    }
+                  </div>
+                </div>
+                
+                <!-- Informasi Pos -->
+                <div class="col">
+                  <div class="d-flex align-items-center mb-1">
+                    <h6 class="text-primary mb-0 me-2">${escapeHtml(pos.data.nama)}</h6>
+                    <span class="badge ${pos.data.status === 'active' ? 'bg-success' : 'bg-secondary'} fs-7">${statusText}</span>
+                  </div>
+                  <div class="small text-muted mb-1">
+                    <span class="me-2">RT ${escapeHtml(pos.data.rt||'-')}/RW ${escapeHtml(pos.data.rw||'-')}</span>
+                    <span class="me-2">•</span>
+                    <span>${jenisText}</span>
+                  </div>
+                  <div class="small text-muted">
+                    Pembuat: ${escapeHtml(pos.data.pembuatNama || '-')}
+                  </div>
+                </div>
+                
+                <!-- Tombol Aksi -->
+                <div class="col-auto">
+                  <div class="d-flex flex-column gap-1" style="min-width: 120px;">
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" onclick="viewPos('${pos.id}')" style="gap: 6px;">
+                      <i class="fas fa-eye fs-7"></i>
+                      <span>Detail</span>
+                    </button>
+                    ${(currentWarga.data.role === 'kepala_dusun' || currentWarga.data.role === 'kepala_desa') ? `
+                      <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-warning flex-fill d-flex align-items-center justify-content-center" onclick="editPos('${pos.id}')" title="Edit" style="gap: 4px;">
+                          <i class="fas fa-edit fs-7"></i>
+                          <span class="d-none d-sm-inline">Edit</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger flex-fill d-flex align-items-center justify-content-center" onclick="deletePos('${pos.id}')" title="Hapus" style="gap: 4px;">
+                          <i class="fas fa-trash fs-7"></i>
+                          <span class="d-none d-sm-inline">Hapus</span>
+                        </button>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="ms-2">
-              <button class="btn btn-sm btn-outline-primary" onclick="viewPos('${id}')">Detail</button>`;
-      
-      if(currentWarga.data.role === 'kepala_dusun' || currentWarga.data.role === 'kepala_desa') 
-        html += ` 
-          <button class="btn btn-sm btn-outline-warning" onclick="editPos('${id}')">Edit</button> 
-          <button class="btn btn-sm btn-outline-danger" onclick="deletePos('${id}')">Hapus</button>`;
-      
-      html += `</div></div>`;
-      
-      // Tampilkan foto thumbnail jika ada
-      if(d.fotoBase64 && d.fotoBase64.length > 0) {
-        html += `
-          <div class="mt-2">
-            <img src="${d.fotoBase64[0]}" style="max-width:200px; max-height:120px; border-radius:6px; border:1px solid #eee;" 
-                 onclick="viewPos('${id}')" style="cursor:pointer" title="Klik untuk lihat detail">
-          </div>`;
-      }
-      
-      html += `</div>`;
-    });
+          </div>
+        `;
+      });
+    }
+    
+    document.getElementById('allPosList').innerHTML = html;
+    
+  }catch(e){ 
+    console.error(e); 
+    document.getElementById('allPosList').innerHTML = '<div class="muted text-center py-4">Gagal memuat pos.</div>'; 
   }
-  
-  $('posList').innerHTML = html;
-  $('pagePosInfo').textContent = `Halaman ${currentPosPage} dari ${totalPages || 1}`;
-  $('prevPosBtn').style.visibility = currentPosPage > 1 ? 'visible' : 'hidden';
-  $('nextPosBtn').style.visibility = currentPosPage < totalPages ? 'visible' : 'hidden';
 }
 
 function changePosPage(direction) {
@@ -2180,9 +2208,9 @@ async function deletePos(id){
   if(!currentWarga) return err("Login dulu");
   
   // Kepala desa dan kepala dusun bisa hapus pos
-  const allowedRoles = ['kepala_desa', 'kepala_dusun'];
+  const allowedRoles = ['kepala_desa'];
   if(!allowedRoles.includes(currentWarga.data.role)) 
-    return err("Hanya Kepala Desa dan Kepala Dusun boleh hapus pos");
+    return err("Hanya Kepala Dusun yang boleh hapus pos");
   
   const conf = await Swal.fire({ 
     title:'Hapus pos?', 
@@ -2282,7 +2310,7 @@ async function openSOSFromPage() {
   
   // Cek apakah user sudah bergabung dengan dusun
   if(!currentWarga || !currentWarga.data.kodeDusun) {
-    err("Anda belum bergabung ke dusun. Silakan gabung dusun terlebih dahulu untuk membuat laporan.");
+    err("Anda ini warga dusun mana kok tiba-tiba mau laporan !!!");
     return;
   }
   
