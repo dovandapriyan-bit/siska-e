@@ -1996,7 +1996,7 @@ function renderPosPagination() {
             <div class="ms-2">
               <button class="btn btn-sm btn-outline-primary" onclick="viewPos('${id}')">Detail</button>`;
       
-      if(currentWarga.data.role === 'kepala_dusun') 
+      if(currentWarga.data.role === 'kepala_dusun' || currentWarga.data.role === 'kepala_desa') 
         html += ` 
           <button class="btn btn-sm btn-outline-warning" onclick="editPos('${id}')">Edit</button> 
           <button class="btn btn-sm btn-outline-danger" onclick="deletePos('${id}')">Hapus</button>`;
@@ -2158,9 +2158,15 @@ async function editPos(id){
   }catch(e){ console.error(e); err("Gagal edit pos"); }
 }
 
+/* ================== DELETE POS ================== */
 async function deletePos(id){
   if(!currentWarga) return err("Login dulu");
-  if(currentWarga.data.role !== 'kepala_dusun') return err("Hanya Kepala Dusun boleh hapus pos");
+  
+  // Kepala desa dan kepala dusun bisa hapus pos
+  const allowedRoles = ['kepala_desa', 'kepala_dusun'];
+  if(!allowedRoles.includes(currentWarga.data.role)) 
+    return err("Hanya Kepala Desa dan Kepala Dusun boleh hapus pos");
+  
   const conf = await Swal.fire({ 
     title:'Hapus pos?', 
     text:'Data akan dihapus permanen', 
@@ -2168,14 +2174,21 @@ async function deletePos(id){
     showCancelButton:true 
   });
   if(!conf.isConfirmed) return;
+  
   try{
     const doc = await db.collection('PosDusun').doc(id).get();
     if(doc.exists){
       await db.collection('PosDusun').doc(id).delete();
       toast("Pos dihapus");
-      loadPosList(); loadMarkers();
-    } else err("Pos tidak ditemukan");
-  }catch(e){ console.error(e); err("Gagal hapus pos"); }
+      loadPosList(); 
+      loadMarkers();
+    } else {
+      err("Pos tidak ditemukan");
+    }
+  }catch(e){ 
+    console.error(e); 
+    err("Gagal hapus pos"); 
+  }
 }
 
 /* ================== SOS PAGE - DENGAN DUPLIKASI CHECK ================== */
