@@ -1735,6 +1735,11 @@ async function joinDusun(){
 
 /* ================== MAIN MAP & MARKERS ================== */
 function initMainMap(){
+ const authCard = document.getElementById('authCard');
+  if(authCard && !authCard.classList.contains('hidden')) {
+    return;
+  }
+    
   if(mainMap) return;
   mainMap = L.map('map').setView([-6.2, 106.8166], 13); // Zoom level ditingkatkan untuk load lebih cepat
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
