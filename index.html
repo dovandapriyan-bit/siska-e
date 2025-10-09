@@ -97,6 +97,21 @@
       display:inline-block;padding:.45rem .6rem;border-radius:8px;
       background:#f8fafc;border:1px dashed #e5e7eb;cursor:pointer;
     }
+
+    /* Tambahkan di bagian style */
+.btn-close-custom {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.btn-close-custom:hover {
+  background: #f8f9fa;
+}
     
     /* Bottom Navigation */
     .bottom-nav {
@@ -667,12 +682,14 @@
 <!-- Pos View Modal -->
 <div id="posViewModal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h5>Detail Pos</h5>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Detail Pos</h5>
+      <button class="btn btn-sm btn-outline-secondary" onclick="closePosView()" style="border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
     <div id="posViewContent"></div>
     <div id="posViewMap" class="mt-2"></div>
-    <div class="d-flex gap-2 mt-3 justify-content-end">
-      <button class="btn btn-secondary" onclick="closePosView()">Tutup</button>
-    </div>
   </div>
 </div>
 
