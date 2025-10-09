@@ -1396,7 +1396,7 @@ async function loadProfileAndShow(){
   }
  
   if(currentWarga.data.kodeDusun){
-    await loadDusunByCode(currentWarga.data.kodeDusun);
+    await loadDusunByCode(currentWarga.data.kodeDusun); // INI YANG PENTING - TUNGGU SAMPAI SELESAI
     loadPosList();
     loadMarkers();
     subscribeReportsForDusun(currentWarga.data.kodeDusun);
@@ -1411,6 +1411,100 @@ async function loadProfileAndShow(){
   loadRegionDropdowns();
   initMainMap();
   loadPendingList();
+}
+
+  /* ================== LOAD PENDING LIST ================== */
+async function loadPendingList() {
+  if (!currentWarga || !currentWarga.data.kodeDusun || currentWarga.data.role !== 'kepala_dusun') return;
+  
+  try {
+    const querySnapshot = await db.collection('Warga')
+      .where('kodeDusun', '==', currentWarga.data.kodeDusun)
+      .where('status', 'in', ['pending', 'pending_referral'])
+      .get();
+    
+    if (querySnapshot.empty) {
+      document.getElementById('pendingList').innerHTML = '<div class="small">Tidak ada pendaftar pending.</div>';
+      return;
+    }
+    
+    let html = '';
+    querySnapshot.forEach(doc => {
+      const user = doc.data();
+      html += `
+        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+          <div>
+            <div><strong>${user.nama}</strong></div>
+            <div class="small">${user.role} · RT ${user.rt}/RW ${user.rw}</div>
+          </div>
+          <div>
+            <button class="btn btn-success btn-sm" onclick="verifyUser('${doc.id}')">Verifikasi</button>
+          </div>
+        </div>
+      `;
+    });
+    
+    document.getElementById('pendingList').innerHTML = html;
+  } catch (error) {
+    console.error('Error loading pending list:', error);
+  }
+}
+
+/* ================== VERIFY USER ================== */
+async function verifyUser(userId) {
+  try {
+    await db.collection('Warga').doc(userId).update({
+      status: 'aktif'
+    });
+    toast("User berhasil diverifikasi");
+    loadPendingList();
+  } catch (error) {
+    console.error('Error verifying user:', error);
+    err("Gagal memverifikasi user");
+  }
+}
+
+/* ================== LOAD PENDING VERIFICATIONS ================== */
+async function loadPendingVerifications() {
+  // Implementation for hierarchy verifications
+  document.getElementById('pendingVerifications').innerHTML = '<div class="small">Tidak ada verifikasi hierarki pending.</div>';
+}
+
+/* ================== REFRESH FAMILY LIST ================== */
+async function refreshFamilyList() {
+  if (!currentWarga) return;
+  
+  try {
+    const querySnapshot = await db.collection('Warga')
+      .where('rt', '==', currentWarga.data.rt)
+      .where('rw', '==', currentWarga.data.rw)
+      .where('blok', '==', currentWarga.data.blok)
+      .where('no', '==', currentWarga.data.no)
+      .get();
+    
+    let html = '';
+    if (querySnapshot.empty) {
+      html = '<div class="muted">Tidak ada anggota keluarga lain.</div>';
+    } else {
+      querySnapshot.forEach(doc => {
+        const member = doc.data();
+        if (doc.id !== currentWarga.id) {
+          html += `
+            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+              <div>
+                <div>${member.nama}</div>
+                <div class="small muted">${member.role} · ${member.status}</div>
+              </div>
+            </div>
+          `;
+        }
+      });
+    }
+    
+    document.getElementById('familyList').innerHTML = html;
+  } catch (error) {
+    console.error('Error loading family list:', error);
+  }
 }
 
 /* ================== CREATE DUSUN ================== */
