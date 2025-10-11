@@ -33,7 +33,6 @@
     text-align: center;
 }
 
-    
     /* Sidebar Mobile */
 @media (max-width: 768px) {
   .sidebar-container {
@@ -2226,7 +2225,8 @@ function generateCode(len=6){
     <button class="bn-small-btn" onclick="bn_nextPage()">Next</button>
   </div>
 </div>
-<div id="bn_profile" class="bn-page" style="display:none">
+<div id="bn_profile" class="bn-page">
+</div>
   <h5>Profil Saya</h5>
   <div id="bn_profile_content"></div>
   <div style="margin-top:12px;">
@@ -2261,26 +2261,33 @@ function generateCode(len=6){
   const useGlobalShowPage = (typeof showPage === 'function');
 
   function bn_navigate(id){
-    // if original showPage expects class "page", try to use it
-    try {
-      if(useGlobalShowPage){
-        // use existing showPage to keep original behavior (it may set localStorage etc.)
-        showPage(id);
-      } else {
-        localShowPage(id);
-        localStorage.setItem('lastPage', id);
-      }
-    } catch(e){
-      localShowPage(id);
-      localStorage.setItem('lastPage', id);
-      console.warn('bn_navigate fallback used', e);
+  console.log('🚀 NAVIGATE TO:', id);
+  
+  // Hide all
+  const pages = ['bn_home', 'bn_statistik', 'bn_sos', 'bn_laporan', 'bn_profile'];
+  pages.forEach(pageId => {
+    const page = document.getElementById(pageId);
+    if(page) {
+      page.style.display = 'none';
+      page.classList.remove('active');
     }
-    // render content for certain pages
-    if(id === 'bn_statistik') bn_renderStat();
-    if(id === 'bn_laporan') bn_renderLaporan();
-    if(id === 'bn_home') bn_renderHome();
-    if(id === 'bn_profile') bn_renderProfile();
+  });
+  
+  // Show selected
+  const target = document.getElementById(id);
+  if(target) {
+    target.style.display = 'block';
+    target.classList.add('active');
+    console.log('✅ Page shown:', id);
+    
+    if(id === 'bn_profile') {
+      console.log('🎯 Rendering profile...');
+      bn_renderProfile();
+    }
+  } else {
+    console.error('❌ Page not found:', id);
   }
+}
 
   // init last page on load (but do not override auth logic)
   window.addEventListener('load', function(){
